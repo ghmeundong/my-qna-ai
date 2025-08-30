@@ -33,10 +33,9 @@ if (fs.existsSync(promptPath)) {
 }
 console.log('Custom prompt loaded, length:', CUSTOM_PROMPT.length);
 
-
 const apiKey = process.env.OPENAI_API_KEY;
 const DEBUG_MOCK = process.env.DEBUG_MOCK === '1';
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000; // Render용 포트
 const MAX_BODY_BYTES = process.env.MAX_BODY_BYTES ? Number(process.env.MAX_BODY_BYTES) : 1 * 1024 * 1024;
 
 if (!apiKey && !DEBUG_MOCK) {
@@ -199,8 +198,8 @@ const server = http.createServer((req, res) => {
           const recentPairs = userChats.slice(-RECENT_PAIRS);
 
           const messages = [
-         { role: "system", content: CUSTOM_PROMPT || "기본 프롬프트 내용" }];
-
+            { role: "system", content: CUSTOM_PROMPT || "기본 프롬프트 내용" }
+          ];
 
           recentPairs.forEach(pair => {
             if (pair.question) messages.push({ role: "user", content: String(pair.question) });
@@ -247,4 +246,5 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// Render 배포용 포트
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

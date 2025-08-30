@@ -95,7 +95,7 @@ function callChatGPT(messages, callback) {
     return process.nextTick(() => callback(null, `모의응답: ${lastUser ? lastUser.content : ''}`));
   }
 
-  const postData = JSON.stringify({ model: "gpt-4o-mini", messages, temperature: 0.7 });
+  const postData = JSON.stringify({ model: "gpt-3.5-turbo", messages, temperature: 0.9 });
 
   const options = {
     hostname: "api.openai.com",

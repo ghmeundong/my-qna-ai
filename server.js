@@ -136,7 +136,7 @@ function callChatGPT(messages, callback) {
 process.on('uncaughtException', err => console.error('uncaughtException:', err));
 process.on('unhandledRejection', (reason, p) => console.error('unhandledRejection:', p, 'reason:', reason));
 
-const RECENT_PAIRS = process.env.RECENT_PAIRS ? Number(process.env.RECENT_PAIRS) : 2;
+const RECENT_PAIRS = process.env.RECENT_PAIRS ? Number(process.env.RECENT_PAIRS) : 1;
 
 const server = http.createServer((req, res) => {
   try {

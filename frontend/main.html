@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QnA</title>
+<style>
+/* 이전 코드 그대로 사용, fetch URL만 서버 3000으로 맞추면 됨 */
+*{box-sizing:border-box;}
+body{margin:0;height:100vh;display:flex;justify-content:center;align-items:center;background:#000;font-family:Arial,sans-serif;color:#fff;}
+#chatContainer{width:600px;height:100vh;display:flex;flex-direction:column;}
+#chatArea{flex:1;padding:15px;padding-bottom:70px;background:#000;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
+#chatArea::-webkit-scrollbar{width:5px;}
+#chatArea::-webkit-scrollbar-thumb{background:#888;border-radius:2.5px;}
+#chatArea::-webkit-scrollbar-track{background:#111;}
+#inputWrapper{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:600px;background:#000;padding:10px;z-index:100;display:flex;justify-content:center;}
+#inputArea{display:flex;gap:10px;width:100%;}
+#userInput{flex:1;padding:10px;border:1px solid #fff;border-radius:20px;background:#111;color:#fff;font-size:16px;}
+#sendBtn{padding:10px 20px;border:none;border-radius:20px;background:#1E90FF;color:#fff;font-size:16px;cursor:pointer;}
+#sendBtn[disabled]{opacity:0.6;cursor:not-allowed;}
+#sendBtn:hover{background:#63B3FF;}
+.message{max-width:80%;padding:10px 15px;border-radius:15px;line-height:1.4;word-break:break-word;position:relative;animation:slideUpFade 0.3s ease;}
+.user{align-self:flex-end;background-color:#1E90FF;color:#fff;border-bottom-right-radius:0;}
+.ai{align-self:flex-start;background-color:#333;color:#fff;border-bottom-left-radius:0;}
+@keyframes slideUpFade{0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);} }
+#sidebar{position:fixed;top:0;right:0;width:40px;height:100vh;background:#333;display:flex;flex-direction:column;padding:10px;transition:width 0.3s ease;overflow:hidden;z-index:100;}
+#sidebar:hover{width:200px;}
+#logoutBtn{padding:10px;background:#1E90FF;border:none;border-radius:5px;color:#fff;font-size:16px;cursor:pointer;white-space:nowrap;opacity:0;transition:opacity 0.3s ease;}
+#sidebar:hover #logoutBtn{opacity:1;margin-bottom:20px;}
+.version-info{margin-top:auto;margin-bottom:20px;font-size:12px;color:#bbb;text-align:center;opacity:0;transition:opacity 0.3s ease;white-space:nowrap;}
+#sidebar:hover .version-info{opacity:1;}
+.typing { align-self: flex-start; background-color: #333; color: #fff; border-bottom-left-radius: 0; border-radius: 15px; padding: 10px 15px; display: flex; gap: 5px; width: fit-content; }
+.dot { width: 6px; height: 6px; background-color: #fff; border-radius: 50%; animation: blink 1.4s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+</style>
+</head>
+<body>
+<div id="chatContainer">
+  <div id="chatArea"></div>
+  <div id="inputWrapper" aria-live="polite">
+    <div id="inputArea">
+      <input type="text" id="userInput" placeholder="질문을 입력하세요." autofocus aria-label="질문 입력">
+      <button id="sendBtn" type="button" aria-label="전송">전송</button>
+    </div>
+  </div>
+</div>
+<div id="sidebar">
+  <button id="logoutBtn">로그아웃</button>
+  <div class="version-info">v.beta_test</div>
+</div>
+
+<script>
+const chatArea = document.getElementById('chatArea');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const params = new URLSearchParams(window.location.search);
+const userId = params.get('userId');
+const role = params.get('role');
+
+if (!userId) { try { localStorage.clear(); } catch(e){} window.location.href = 'login.html'; }
+
+function addMessage(text, className){
+  const msg = document.createElement('div');
+  msg.className = 'message ' + className;
+  msg.textContent = text;
+  chatArea.appendChild(msg);
+  msg.scrollIntoView({behavior:'smooth', block:'end'});
+}
+
+function showTyping(){
+  if(document.getElementById('typingIndicator')) return;
+  const typing = document.createElement('div');
+  typing.className = 'typing';
+  typing.id = 'typingIndicator';
+  typing.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chatArea.appendChild(typing);
+  typing.scrollIntoView({behavior:'smooth', block:'end'});
+}
+function hideTyping(){ const typing=document.getElementById('typingIndicator'); if(typing) typing.remove(); }
+
+if(userId){ addMessage(`안녕하세요 ${userId}님! 어떻게 도와드릴까요?`, 'ai'); }
+
+logoutBtn?.addEventListener('click',()=>{try{localStorage.clear();}catch(e){} window.location.href='login.html';});
+
+let isRequesting = false;
+async function sendMessage(){
+  if(isRequesting) return;
+  const question=userInput.value.trim(); if(!question) return;
+  userInput.value=''; addMessage(question,'user');
+  sendBtn.disabled=true; userInput.disabled=true; isRequesting=true;
+  showTyping();
+  const controller=new AbortController();
+  const timeoutId=setTimeout(()=>controller.abort(),30000);
+  try{
+    const res=await fetch('http://localhost:3000/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userId,role,question}),
+      signal:controller.signal
+    });
+    clearTimeout(timeoutId);
+    if(!res.ok){ let serverMsg=`HTTP ${res.status}`; try{ const errData=await res.json(); if(errData?.msg) serverMsg=errData.msg;}catch(_){} throw new Error(serverMsg);}
+    const data=await res.json();
+    addMessage(data.answer||"AI가 답변하지 못했습니다.",'ai');
+  }catch(e){
+    console.error('fetch error:', e);
+    if(e.name==='AbortError') addMessage("AI 응답 시간 초과(30초). 다시 시도해주세요.",'ai');
+    else addMessage("AI 응답 실패: "+(e.message||''));
+  }finally{
+    clearTimeout(timeoutId);
+    hideTyping();
+    sendBtn.disabled=false; userInput.disabled=false; userInput.focus();
+    isRequesting=false;
+  }
+}
+sendBtn.addEventListener('click',sendMessage);
+userInput.addEventListener('keydown', e=>{if(e.key==='Enter'){e.preventDefault(); sendMessage();}});
+userInput.focus();
+</script>
+</body>
+</html>

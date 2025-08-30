@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log In</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+    font-family: Arial, sans-serif;
+    color: #fff;
+}
+.container { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 300px; }
+input[type="text"], input[type="password"] {
+    width: 100%; padding: 10px; border: 1px solid #fff; border-radius: 5px;
+    background-color: #000; color: #fff; font-size: 16px;
+}
+input::placeholder { color: #ccc; }
+button {
+    width: 100%; padding: 10px; border: none; border-radius: 5px;
+    font-size: 16px; cursor: pointer; transition: background-color 0.2s;
+}
+.login-btn { background-color: #fff; color: #000; }
+.login-btn:hover { background-color: #ddd; }
+.signup-btn { background-color: #1E90FF; color: #fff; }
+.signup-btn:hover { background-color: #63B3FF; }
+.guest-btn { background-color: #555; color: #fff; }
+.guest-btn:hover { background-color: #777; }
+.hidden { display: none; }
+.input-with-help { position: relative; width: 100%; }
+.help-icon {
+    position: absolute; margin-left: 8px; top: 50%; transform: translateY(-50%);
+    color: #fff; font-weight: bold; cursor: pointer; z-index: 2;
+}
+.help-box {
+    display: none; position: absolute; top: 50%; left: 110%; transform: translateY(-50%);
+    background-color: rgba(255,255,255,0.95); color: #000; padding: 6px 10px; font-size: 14px;
+    border: 1px solid #aaa; white-space: nowrap; border-radius: 0; z-index: 3;
+}
+.help-icon:hover + .help-box { display: block; }
+@media (max-width: 768px) {
+    .help-box { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        white-space: normal; max-width: 80%; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="loginForm">
+    <input type="text" placeholder="아이디" id="loginId" autofocus>
+    <input type="password" placeholder="비밀번호" id="loginPw">
+    <button class="login-btn" id="loginBtn">로그인</button>
+    <button class="signup-btn" id="showSignup">회원가입</button>
+    <button class="guest-btn" id="guestBtn">게스트로 로그인</button>
+</div>
+
+<div class="container hidden" id="signupForm">
+    <input type="text" placeholder="아이디" id="signupId" autofocus>
+    <div class="input-with-help">
+        <input type="password" placeholder="비밀번호" id="signupPw">
+        <span class="help-icon">?</span>
+        <div class="help-box">비밀번호는 단방향 함수로 암호화 되어 데이터 베이스에 저장됩니다</div>
+    </div>
+    <input type="password" placeholder="비밀번호 확인" id="signupPw2">
+    <div class="input-with-help">
+        <input type="text" placeholder="인증 코드" id="signupCode">
+        <span class="help-icon">?</span>
+        <div class="help-box">
+            인증 코드는 정보 접근 권한을 식별하기 위한 필수 요소입니다.<br>
+            힌트: 꽃 이름
+        </div>
+    </div>
+    <button class="signup-btn" id="signupBtn">회원가입</button>
+    <button class="login-btn" id="backLogin">로그인으로</button>
+</div>
+
+<script>
+const loginForm = document.getElementById('loginForm');
+const signupForm = document.getElementById('signupForm');
+const showSignup = document.getElementById('showSignup');
+const backLogin = document.getElementById('backLogin');
+
+// 화면 전환
+showSignup.addEventListener('click', () => {
+    loginForm.classList.add('hidden');
+    signupForm.classList.remove('hidden');
+    signupForm.querySelector('input').focus();
+});
+backLogin.addEventListener('click', () => {
+    signupForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+    loginForm.querySelector('input').focus();
+});
+
+// POST 요청 helper
+async function postData(url = '', data = {}) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return res.json();
+}
+
+// 회원가입
+signupForm.querySelector('.signup-btn').addEventListener('click', async () => {
+    const inputs = signupForm.querySelectorAll('input');
+    const userId = inputs[0].value.trim();
+    const password = inputs[1].value.trim();
+    const passwordConfirm = inputs[2].value.trim();
+    const authCode = inputs[3].value.trim();
+
+    if (!userId || !password || !passwordConfirm || !authCode) {
+        alert('모든 항목을 입력해주세요.');
+        return;
+    }
+    if (password !== passwordConfirm) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+    }
+
+    try {
+        const res = await postData('http://localhost:3000/signup', { userId, password, authCode });
+        alert(res.msg);
+        if (res.success) {
+            signupForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            loginForm.querySelector('input').focus();
+        }
+    } catch (e) {
+        console.error(e);
+        alert('회원가입 중 오류가 발생했습니다.');
+    }
+});
+
+// 로그인
+loginForm.querySelector('.login-btn').addEventListener('click', async () => {
+    const inputs = loginForm.querySelectorAll('input');
+    const userId = inputs[0].value.trim();
+    const password = inputs[1].value.trim();
+
+    if (!userId || !password) {
+        alert('아이디와 비밀번호를 입력해주세요.');
+        return;
+    }
+
+    try {
+        const res = await postData('http://localhost:3000/login', { userId, password, role: 'regular' });
+        if (!res.success) { alert('로그인 실패: ' + res.msg); return; }
+        localStorage.setItem('userId', res.userId);
+        localStorage.setItem('role', res.role);
+        window.location.href = `main.html?userId=${res.userId}&role=${res.role}`;
+    } catch (e) {
+        console.error(e);
+        alert('로그인 중 오류가 발생했습니다.');
+    }
+});
+
+// 게스트 로그인
+loginForm.querySelector('.guest-btn').addEventListener('click', async () => {
+    try {
+        const res = await postData('http://localhost:3000/login', { role: 'guest' });
+        if (!res.success) { alert('로그인 실패: ' + res.msg); return; }
+        localStorage.setItem('userId', res.userId);
+        localStorage.setItem('role', res.role);
+        window.location.href = `main.html?userId=${res.userId}&role=${res.role}`;
+    } catch (e) { console.error(e); alert('로그인 중 오류가 발생했습니다.'); }
+});
+
+// Enter 키 처리
+loginForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') loginForm.querySelector('.login-btn').click(); }));
+signupForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') signupForm.querySelector('.signup-btn').click(); }));
+
+</script>
+</body>
+</html>

@@ -5,50 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Log In</title>
 <style>
-* { box-sizing: border-box; }
-body {
-    margin: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #000;
-    font-family: Arial, sans-serif;
-    color: #fff;
-}
-.container { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 300px; }
-input[type="text"], input[type="password"] {
-    width: 100%; padding: 10px; border: 1px solid #fff; border-radius: 5px;
-    background-color: #000; color: #fff; font-size: 16px;
-}
-input::placeholder { color: #ccc; }
-button {
-    width: 100%; padding: 10px; border: none; border-radius: 5px;
-    font-size: 16px; cursor: pointer; transition: background-color 0.2s;
-}
-.login-btn { background-color: #fff; color: #000; }
-.login-btn:hover { background-color: #ddd; }
-.signup-btn { background-color: #1E90FF; color: #fff; }
-.signup-btn:hover { background-color: #63B3FF; }
-.guest-btn { background-color: #555; color: #fff; }
-.guest-btn:hover { background-color: #777; }
-.hidden { display: none; }
-.input-with-help { position: relative; width: 100%; }
-.help-icon {
-    position: absolute; margin-left: 8px; top: 50%; transform: translateY(-50%);
-    color: #fff; font-weight: bold; cursor: pointer; z-index: 2;
-}
-.help-box {
-    display: none; position: absolute; top: 50%; left: 110%; transform: translateY(-50%);
-    background-color: rgba(255,255,255,0.95); color: #000; padding: 6px 10px; font-size: 14px;
-    border: 1px solid #aaa; white-space: nowrap; border-radius: 0; z-index: 3;
-}
-.help-icon:hover + .help-box { display: block; }
-@media (max-width: 768px) {
-    .help-box { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        white-space: normal; max-width: 80%; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-}
+*{box-sizing:border-box;}
+body{margin:0;height:100vh;display:flex;justify-content:center;align-items:center;background-color:#000;font-family:Arial,sans-serif;color:#fff;}
+.container{display:flex;flex-direction:column;align-items:center;gap:15px;width:300px;}
+input[type="text"],input[type="password"]{width:100%;padding:10px;border:1px solid #fff;border-radius:5px;background-color:#000;color:#fff;font-size:16px;}
+input::placeholder{color:#ccc;}
+button{width:100%;padding:10px;border:none;border-radius:5px;font-size:16px;cursor:pointer;transition:0.2s;}
+.login-btn{background-color:#fff;color:#000;} .login-btn:hover{background-color:#ddd;}
+.signup-btn{background-color:#1E90FF;color:#fff;} .signup-btn:hover{background-color:#63B3FF;}
+.guest-btn{background-color:#555;color:#fff;} .guest-btn:hover{background-color:#777;}
+.hidden{display:none;}
+.input-with-help{position:relative;width:100%;}
+.help-icon{position:absolute;margin-left:8px;top:50%;transform:translateY(-50%);color:#fff;font-weight:bold;cursor:pointer;z-index:2;}
+.help-box{display:none;position:absolute;top:50%;left:110%;transform:translateY(-50%);background-color:rgba(255,255,255,0.95);color:#000;padding:6px 10px;font-size:14px;border:1px solid #aaa;white-space:nowrap;border-radius:0;z-index:3;}
+.help-icon:hover + .help-box{display:block;}
+@media(max-width:768px){.help-box{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);white-space:normal;max-width:80%;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);}}
+/* Toast */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:10px;opacity:0;transition:opacity 0.3s;z-index:999;}
+#toast.show{opacity:1;}
 </style>
 </head>
 <body>
@@ -72,118 +46,78 @@ button {
     <div class="input-with-help">
         <input type="text" placeholder="인증 코드" id="signupCode">
         <span class="help-icon">?</span>
-        <div class="help-box">
-            인증 코드는 정보 접근 권한을 식별하기 위한 필수 요소입니다.<br>
-            힌트: 꽃 이름
-        </div>
+        <div class="help-box">인증 코드는 정보 접근 권한을 식별하기 위한 필수 요소입니다.<br>힌트: 꽃 이름</div>
     </div>
     <button class="signup-btn" id="signupBtn">회원가입</button>
     <button class="login-btn" id="backLogin">로그인으로</button>
 </div>
 
+<div id="toast"></div>
+
 <script>
 // Render 배포 URL
-const BASE_URL = 'https://my-qna-ai.onrender.com';
+const BASE_URL='https://my-qna-ai.onrender.com';
 
-const loginForm = document.getElementById('loginForm');
-const signupForm = document.getElementById('signupForm');
-const showSignup = document.getElementById('showSignup');
-const backLogin = document.getElementById('backLogin');
+const loginForm=document.getElementById('loginForm');
+const signupForm=document.getElementById('signupForm');
+const showSignup=document.getElementById('showSignup');
+const backLogin=document.getElementById('backLogin');
+const toast=document.getElementById('toast');
 
 // 화면 전환
-showSignup.addEventListener('click', () => {
-    loginForm.classList.add('hidden');
-    signupForm.classList.remove('hidden');
-    signupForm.querySelector('input').focus();
-});
-backLogin.addEventListener('click', () => {
-    signupForm.classList.add('hidden');
-    loginForm.classList.remove('hidden');
-    loginForm.querySelector('input').focus();
-});
+showSignup.addEventListener('click',()=>{loginForm.classList.add('hidden');signupForm.classList.remove('hidden');signupForm.querySelector('input').focus();});
+backLogin.addEventListener('click',()=>{signupForm.classList.add('hidden');loginForm.classList.remove('hidden');loginForm.querySelector('input').focus();});
 
-// POST 요청 helper
-async function postData(url = '', data = {}) {
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
+// 공통 함수: POST 요청
+async function postData(url='',data={}) {
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     return res.json();
 }
 
+// 공통 함수: Toast 메시지
+function showToast(msg,duration=2000){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),duration);}
+
+// 공통 함수: 폼 입력값 가져오기
+function getInputValues(form){return Array.from(form.querySelectorAll('input')).map(i=>i.value.trim());}
+
 // 회원가입
-signupForm.querySelector('.signup-btn').addEventListener('click', async () => {
-    const inputs = signupForm.querySelectorAll('input');
-    const userId = inputs[0].value.trim();
-    const password = inputs[1].value.trim();
-    const passwordConfirm = inputs[2].value.trim();
-    const authCode = inputs[3].value.trim();
-
-    if (!userId || !password || !passwordConfirm || !authCode) {
-        alert('모든 항목을 입력해주세요.');
-        return;
-    }
-    if (password !== passwordConfirm) {
-        alert('비밀번호가 일치하지 않습니다.');
-        return;
-    }
-
-    try {
-        const res = await postData(`${BASE_URL}/signup`, { userId, password, authCode });
-        alert(res.msg);
-        if (res.success) {
-            signupForm.classList.add('hidden');
-            loginForm.classList.remove('hidden');
-            loginForm.querySelector('input').focus();
-        }
-    } catch (e) {
-        console.error(e);
-        alert('회원가입 중 오류가 발생했습니다.');
-    }
+signupForm.querySelector('.signup-btn').addEventListener('click',async()=>{
+    const [userId,password,passwordConfirm,authCode]=getInputValues(signupForm);
+    if(!userId||!password||!passwordConfirm||!authCode){showToast('모든 항목을 입력해주세요.');return;}
+    if(password!==passwordConfirm){showToast('비밀번호가 일치하지 않습니다.');return;}
+    try{
+        const res=await postData(`${BASE_URL}/signup`,{userId,password,authCode});
+        showToast(res.msg);
+        if(res.success){signupForm.classList.add('hidden');loginForm.classList.remove('hidden');loginForm.querySelector('input').focus();}
+    }catch(e){console.error(e);showToast('회원가입 중 오류 발생');}
 });
 
 // 로그인
-loginForm.querySelector('.login-btn').addEventListener('click', async () => {
-    const inputs = loginForm.querySelectorAll('input');
-    const userId = inputs[0].value.trim();
-    const password = inputs[1].value.trim();
-
-    if (!userId || !password) {
-        alert('아이디와 비밀번호를 입력해주세요.');
-        return;
-    }
-
-    try {
-        const res = await postData(`${BASE_URL}/login`, { userId, password, role: 'regular' });
-        if (!res.success) { alert('로그인 실패: ' + res.msg); return; }
-        localStorage.setItem('userId', res.userId);
-        localStorage.setItem('role', res.role);
-        window.location.href = `main.html?userId=${res.userId}&role=${res.role}`;
-    } catch (e) {
-        console.error(e);
-        alert('로그인 중 오류가 발생했습니다.');
-    }
+loginForm.querySelector('.login-btn').addEventListener('click',async()=>{
+    const [userId,password]=getInputValues(loginForm);
+    if(!userId||!password){showToast('아이디와 비밀번호를 입력해주세요.');return;}
+    try{
+        const res=await postData(`${BASE_URL}/login`,{userId,password,role:'regular'});
+        if(!res.success){showToast('로그인 실패: '+res.msg);return;}
+        localStorage.setItem('userId',res.userId);
+        localStorage.setItem('role',res.role);
+        window.location.href=`main.html?userId=${res.userId}&role=${res.role}`;
+    }catch(e){console.error(e);showToast('로그인 중 오류 발생');}
 });
 
 // 게스트 로그인
-loginForm.querySelector('.guest-btn').addEventListener('click', async () => {
-    try {
-        const res = await postData(`${BASE_URL}/login`, { role: 'guest' });
-        if (!res.success) { alert('로그인 실패: ' + res.msg); return; }
-        localStorage.setItem('userId', res.userId);
-        localStorage.setItem('role', res.role);
-        window.location.href = `main.html?userId=${res.userId}&role=${res.role}`;
-    } catch (e) { console.error(e); alert('로그인 중 오류가 발생했습니다.'); }
+loginForm.querySelector('.guest-btn').addEventListener('click',async()=>{
+    try{
+        const res=await postData(`${BASE_URL}/login`,{role:'guest'});
+        if(!res.success){showToast('로그인 실패: '+res.msg);return;}
+        localStorage.setItem('userId',res.userId);
+        localStorage.setItem('role',res.role);
+        window.location.href=`main.html?userId=${res.userId}&role=${res.role}`;
+    }catch(e){console.error(e);showToast('로그인 중 오류 발생');}
 });
 
 // Enter 키 처리
-loginForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { 
-    if (e.key === 'Enter') loginForm.querySelector('.login-btn').click(); 
-}));
-signupForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { 
-    if (e.key === 'Enter') signupForm.querySelector('.signup-btn').click(); 
-}));
+[loginForm,signupForm].forEach(form=>form.querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){form.querySelector('button').click();}})));
 </script>
 </body>
 </html>

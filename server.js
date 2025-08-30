@@ -35,7 +35,7 @@ console.log('Custom prompt loaded, length:', CUSTOM_PROMPT.length);
 
 const apiKey = process.env.OPENAI_API_KEY;
 const DEBUG_MOCK = process.env.DEBUG_MOCK === '1';
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3000; // Render용 포트
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const MAX_BODY_BYTES = process.env.MAX_BODY_BYTES ? Number(process.env.MAX_BODY_BYTES) : 1 * 1024 * 1024;
 
 if (!apiKey && !DEBUG_MOCK) {
@@ -121,9 +121,7 @@ function callChatGPT(messages, callback) {
         const answer = json?.choices?.[0]?.message?.content;
         if (!answer) return callback(new Error('OpenAI 응답에 content 없음'));
         callback(null, answer);
-      } catch (err) {
-        callback(err);
-      }
+      } catch (err) { callback(err); }
     });
   });
 
@@ -139,6 +137,7 @@ process.on('unhandledRejection', (reason, p) => console.error('unhandledRejectio
 const RECENT_PAIRS = process.env.RECENT_PAIRS ? Number(process.env.RECENT_PAIRS) : 1;
 
 const server = http.createServer((req, res) => {
+  const startTime = Date.now();
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
@@ -147,6 +146,8 @@ const server = http.createServer((req, res) => {
 
     const parsed = url.parse(req.url || '/');
     const pathname = parsed.pathname || '/';
+
+    console.log(`[${new Date().toISOString()}] ${req.method} ${pathname}`);
 
     if (req.method === 'POST') {
       let body = '';
@@ -160,66 +161,78 @@ const server = http.createServer((req, res) => {
         }
         body += chunk;
       });
-      req.on('end', () => {
+      req.on('end', async () => {
         if (req.destroyed) return;
         let data;
         try { data = JSON.parse(body || '{}'); } catch (e) { data = {}; }
-        const users = readJson(usersPath);
 
-        if (pathname === '/signup') {
-          const { userId, password, authCode } = data;
-          if (authCode !== 'nontiscordardime') return jsonRes(res, { success: false, msg: '인증 코드 잘못됨' });
-          if (!userId || !password) return jsonRes(res, { success: false, msg: 'userId와 password 필요' });
-          if (users.find(u => u.userId === userId)) return jsonRes(res, { success: false, msg: '이미 존재하는 아이디' });
+        try {
+          const users = readJson(usersPath);
 
-          users.push({ userId, password, role: 'regular' });
-          try { writeJson(usersPath, users); return jsonRes(res, { success: true, msg: '회원가입 성공!' }); }
-          catch(e) { return jsonRes(res, { success: false, msg: '회원가입 저장 오류' }, 500); }
-        }
+          // 회원가입
+          if (pathname === '/signup') {
+            const { userId, password, authCode } = data;
+            if (authCode !== 'nontiscordardime') return jsonRes(res, { success: false, msg: '인증 코드 잘못됨' }, 400);
+            if (!userId || !password) return jsonRes(res, { success: false, msg: 'userId와 password 필요' }, 400);
+            if (users.find(u => u.userId === userId)) return jsonRes(res, { success: false, msg: '이미 존재하는 아이디' }, 409);
 
-        if (pathname === '/login') {
-          const { userId, password, role } = data;
-          if (role === 'guest') {
-            const guestId = `guest_${Date.now()}`;
-            return jsonRes(res, { success: true, userId: guestId, role: 'guest' });
+            users.push({ userId, password, role: 'regular' });
+            writeJson(usersPath, users);
+            console.log(`[SIGNUP] userId=${userId}`);
+            return jsonRes(res, { success: true, msg: '회원가입 성공!' });
           }
-          if (!userId || !password) return jsonRes(res, { success: false, msg: 'userId와 password 필요' });
-          const user = users.find(u => u.userId === userId && u.password === password);
-          if (!user) return jsonRes(res, { success: false, msg: '아이디 또는 비밀번호 틀림' });
-          return jsonRes(res, { success: true, userId: user.userId, role: user.role });
+
+          // 로그인
+          if (pathname === '/login') {
+            const { userId, password, role } = data;
+            if (role === 'guest') {
+              const guestId = `guest_${Date.now()}`;
+              console.log(`[LOGIN] guestId=${guestId}`);
+              return jsonRes(res, { success: true, userId: guestId, role: 'guest' });
+            }
+            if (!userId || !password) return jsonRes(res, { success: false, msg: 'userId와 password 필요' }, 400);
+            const user = users.find(u => u.userId === userId && u.password === password);
+            if (!user) return jsonRes(res, { success: false, msg: '아이디 또는 비밀번호 틀림' }, 401);
+            console.log(`[LOGIN] userId=${user.userId}, role=${user.role}`);
+            return jsonRes(res, { success: true, userId: user.userId, role: user.role });
+          }
+
+          // 채팅
+          if (pathname === '/chat') {
+            const { userId, role, question } = data;
+            if (!question) return jsonRes(res, { success: false, msg: 'question 필요' }, 400);
+
+            const chats = readJson(chatsPath);
+            let userChats = chats.filter(c => c.userId === userId);
+            const recentPairs = userChats.slice(-RECENT_PAIRS);
+
+            const messages = [{ role: "system", content: CUSTOM_PROMPT || "기본 프롬프트 내용" }];
+            recentPairs.forEach(pair => {
+              if (pair.question) messages.push({ role: "user", content: String(pair.question) });
+              if (pair.answer) messages.push({ role: "assistant", content: String(pair.answer) });
+            });
+            messages.push({ role: "user", content: question });
+
+            callChatGPT(messages, (err, aiAnswer) => {
+              if (err) {
+                console.error('[CHAT] AI 호출 실패', err);
+                return jsonRes(res, { success: false, msg: 'AI 호출 실패', details: DEBUG_MOCK ? String(err) : undefined }, 500);
+              }
+              const allChats = readJson(chatsPath);
+              allChats.push({ userId, role, question, answer: aiAnswer, timestamp: Date.now() });
+              writeJson(chatsPath, allChats);
+              console.log(`[CHAT] userId=${userId} question="${question}"`);
+              jsonRes(res, { success: true, answer: aiAnswer });
+            });
+
+            return;
+          }
+
+          return jsonRes(res, { success: false, msg: '알 수 없는 POST 경로' }, 404);
+        } catch (e) {
+          console.error('[POST 처리 오류]', e);
+          return jsonRes(res, { success: false, msg: '서버 오류', details: DEBUG_MOCK ? String(e) : undefined }, 500);
         }
-
-        if (pathname === '/chat') {
-          const { userId, role, question } = data;
-          if (!question) return jsonRes(res, { success: false, msg: 'question 필요' });
-
-          const chats = readJson(chatsPath);
-          let userChats = chats.filter(c => c.userId === userId);
-          const recentPairs = userChats.slice(-RECENT_PAIRS);
-
-          const messages = [
-            { role: "system", content: CUSTOM_PROMPT || "기본 프롬프트 내용" }
-          ];
-
-          recentPairs.forEach(pair => {
-            if (pair.question) messages.push({ role: "user", content: String(pair.question) });
-            if (pair.answer) messages.push({ role: "assistant", content: String(pair.answer) });
-          });
-
-          messages.push({ role: "user", content: question });
-
-          callChatGPT(messages, (err, aiAnswer) => {
-            if (err) return jsonRes(res, { success: false, msg: 'AI 호출 실패', details: DEBUG_MOCK ? String(err) : undefined }, 500);
-            const allChats = readJson(chatsPath);
-            allChats.push({ userId, role, question, answer: aiAnswer, timestamp: Date.now() });
-            writeJson(chatsPath, allChats);
-            jsonRes(res, { success: true, answer: aiAnswer });
-          });
-
-          return;
-        }
-
-        return jsonRes(res, { success: false, msg: '알 수 없는 POST 경로' }, 404);
       });
       return;
     }
@@ -233,16 +246,20 @@ const server = http.createServer((req, res) => {
     }
 
     fs.readFile(resolved, (err, content) => {
-      if (err) { res.writeHead(404); res.end('Not found'); return; }
+      if (err) { console.error(`[GET] 404 ${target}`); res.writeHead(404); res.end('Not found'); return; }
       const ext = path.extname(resolved).toLowerCase();
       const mimeTypes = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css', '.json':'application/json' };
       res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
       res.end(content);
+      console.log(`[GET] 200 ${target}`);
     });
 
   } catch (outerErr) {
-    console.error('서버 처리 예외:', outerErr);
-    try { jsonRes(res, { success:false, msg:'서버 오류' }, 500); } catch(e){ }
+    console.error('[서버 처리 예외]:', outerErr);
+    try { jsonRes(res, { success:false, msg:'서버 처리 중 오류 발생' }, 500); } catch(e){ }
+  } finally {
+    const duration = Date.now() - startTime;
+    console.log(`Request 처리 시간: ${duration}ms`);
   }
 });
 

@@ -5,70 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QnA AI</title>
 <style>
-  * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #000;
-    font-family: Arial, sans-serif;
-    color: #fff;
-    overflow: hidden;
-  }
-
-  #chatContainer { width: 600px; height: 100vh; display: flex; flex-direction: column; }
-  #chatArea { flex:1; padding:15px; padding-bottom:70px; background:#000; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
-  #chatArea::-webkit-scrollbar { width:5px; }
-  #chatArea::-webkit-scrollbar-thumb { background:#888; border-radius:2.5px; }
-  #chatArea::-webkit-scrollbar-track { background:#111; }
-
-  #inputWrapper { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:600px; background:#000; padding:10px; z-index:100; display:flex; justify-content:center; }
-  #inputArea { display:flex; gap:10px; width:100%; }
-  #userInput { flex:1; padding:10px; border:1px solid #fff; border-radius:20px; background:#111; color:#fff; font-size:16px; }
-  #sendBtn { padding:10px 20px; border:none; border-radius:20px; background:#1E90FF; color:#fff; font-size:16px; cursor:pointer; transition:0.2s; }
-  #sendBtn:hover { background:#63B3FF; }
-  #sendBtn[disabled] { opacity:0.6; cursor:not-allowed; }
-
-  .message { max-width:80%; padding:10px 15px; border-radius:15px; line-height:1.4; word-break:break-word; position:relative; animation:slideUpFade 0.3s ease; }
-  .user { align-self:flex-end; background:#1E90FF; color:#fff; border-bottom-right-radius:0; }
-  .ai { align-self:flex-start; background:#333; color:#fff; border-bottom-left-radius:0; }
-  @keyframes slideUpFade { 0%{opacity:0; transform:translateY(10px);} 100%{opacity:1; transform:translateY(0);} }
-
-  #sidebar { position:fixed; top:0; right:0; width:40px; height:100vh; background:#333; display:flex; flex-direction:column; padding:10px; transition:width 0.3s ease; overflow:hidden; z-index:100; }
-  #sidebar:hover { width:200px; }
-  #logoutBtn { padding:10px; background:#1E90FF; border:none; border-radius:5px; color:#fff; font-size:16px; cursor:pointer; white-space:nowrap; opacity:0; transition:opacity 0.3s ease; }
-  #sidebar:hover #logoutBtn { opacity:1; margin-bottom:20px; }
-  .version-info { margin-top:auto; margin-bottom:20px; font-size:12px; color:#bbb; text-align:center; opacity:0; transition:opacity 0.3s ease; white-space:nowrap; }
-  #sidebar:hover .version-info { opacity:1; }
-
-  /* typing indicator */
-  .typing { align-self:flex-start; background:#333; color:#fff; border-bottom-left-radius:0; border-radius:15px; padding:10px 15px; display:flex; gap:5px; width:fit-content; }
-  .dot { width:6px; height:6px; background:#fff; border-radius:50%; animation:blink 1.4s infinite; }
-  .dot:nth-child(2){animation-delay:0.2s;}
-  .dot:nth-child(3){animation-delay:0.4s;}
-  @keyframes blink { 0%,80%,100%{opacity:0;} 40%{opacity:1;} }
-
-  @media (max-width:768px){
-    #sidebar{display:none;}
-    #chatArea::-webkit-scrollbar{display:none;}
-    #logoutBtn{display:block; position:fixed; top:10px; right:10px; z-index:200; opacity:1;}
-    #chatContainer{width:95%; height:100vh;}
-    #chatArea{padding-bottom:70px;}
-    #inputWrapper{width:95%;}
-    #inputArea{width:100%; flex-direction:row; gap:10px;}
-    #userInput{flex:1;}
-    #sendBtn{flex-shrink:0;}
-  }
+* { box-sizing: border-box; }
+body { margin:0; height:100vh; display:flex; justify-content:center; align-items:center; background:#000; font-family:Arial,sans-serif; color:#fff; overflow:hidden; }
+#chatContainer { width:600px; height:100vh; display:flex; flex-direction:column; }
+#chatArea { flex:1; padding:15px; padding-bottom:70px; background:#000; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+#chatArea::-webkit-scrollbar { width:5px; }
+#chatArea::-webkit-scrollbar-thumb { background:#888; border-radius:2.5px; }
+#chatArea::-webkit-scrollbar-track { background:#111; }
+#inputWrapper { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:600px; background:#000; padding:10px; z-index:100; display:flex; justify-content:center; }
+#inputArea { display:flex; gap:10px; width:100%; }
+#userInput { flex:1; padding:10px; border:1px solid #fff; border-radius:20px; background:#111; color:#fff; font-size:16px; }
+#sendBtn { padding:10px 20px; border:none; border-radius:20px; background:#1E90FF; color:#fff; font-size:16px; cursor:pointer; transition:0.2s; }
+#sendBtn:hover { background:#63B3FF; }
+#sendBtn[disabled] { opacity:0.6; cursor:not-allowed; }
+.message { max-width:80%; padding:10px 15px; border-radius:15px; line-height:1.4; word-break:break-word; position:relative; animation:slideUpFade 0.3s ease; }
+.user { align-self:flex-end; background:#1E90FF; color:#fff; border-bottom-right-radius:0; }
+.ai { align-self:flex-start; background:#333; color:#fff; border-bottom-left-radius:0; }
+@keyframes slideUpFade { 0%{opacity:0; transform:translateY(10px);} 100%{opacity:1; transform:translateY(0);} }
+#sidebar { position:fixed; top:0; right:0; width:40px; height:100vh; background:#333; display:flex; flex-direction:column; padding:10px; transition:width 0.3s ease; overflow:hidden; z-index:100; }
+#sidebar:hover { width:200px; }
+#logoutBtn { padding:10px; background:#1E90FF; border:none; border-radius:5px; color:#fff; font-size:16px; cursor:pointer; white-space:nowrap; opacity:0; transition:opacity 0.3s ease; }
+#sidebar:hover #logoutBtn { opacity:1; margin-bottom:20px; }
+.version-info { margin-top:auto; margin-bottom:20px; font-size:12px; color:#bbb; text-align:center; opacity:0; transition:opacity 0.3s ease; white-space:nowrap; }
+#sidebar:hover .version-info { opacity:1; }
+/* typing indicator */
+.typing { align-self:flex-start; background:#333; color:#fff; border-bottom-left-radius:0; border-radius:15px; padding:10px 15px; display:flex; gap:5px; width:fit-content; }
+.dot { width:6px; height:6px; background:#fff; border-radius:50%; animation:blink 1.4s infinite; }
+.dot:nth-child(2){animation-delay:0.2s;}
+.dot:nth-child(3){animation-delay:0.4s;}
+@keyframes blink { 0%,80%,100%{opacity:0;} 40%{opacity:1;} }
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:10px;opacity:0;transition:opacity 0.3s;z-index:999;}
+#toast.show{opacity:1;}
+@media(max-width:768px){
+  #sidebar{display:none;}
+  #chatArea::-webkit-scrollbar{display:none;}
+  #logoutBtn{display:block; position:fixed; top:10px; right:10px; z-index:200; opacity:1;}
+  #chatContainer{width:95%; height:100vh;}
+  #chatArea{padding-bottom:70px;}
+  #inputWrapper{width:95%;}
+  #inputArea{width:100%; flex-direction:row; gap:10px;}
+  #userInput{flex:1;}
+  #sendBtn{flex-shrink:0;}
+}
 </style>
 </head>
 <body>
 <div id="chatContainer">
-  <div id="chatArea">
-    <div class="message ai">안녕하세요! ${userId}님, 위대하고 지엄하신 김동은님에 대해 궁금한 점이 있으신가요?</div>
-  </div>
+  <div id="chatArea"></div>
   <div id="inputWrapper">
     <div id="inputArea">
       <input type="text" id="userInput" placeholder="질문을 입력해주세요" autofocus>
@@ -82,17 +65,22 @@
   <div class="version-info">v2.0.0 released</div>
 </div>
 
+<div id="toast"></div>
+
 <script>
 const chatArea=document.getElementById('chatArea');
 const userInput=document.getElementById('userInput');
 const sendBtn=document.getElementById('sendBtn');
 const logoutBtn=document.getElementById('logoutBtn');
+const toast=document.getElementById('toast');
+const BASE_URL='https://my-qna-ai.onrender.com';
 
 const params=new URLSearchParams(window.location.search);
-const userId=params.get('userId');
-const role=params.get('role');
+const userId=params.get('userId')||localStorage.getItem('userId')||`guest_${Date.now()}`;
+const role=params.get('role')||localStorage.getItem('role')||'guest';
 if(!userId){try{localStorage.clear();}catch(e){} window.location.href='login.html';}
 
+// 공통 함수: 메시지 추가
 function addMessage(text,className){
   const msg=document.createElement('div');
   msg.className='message '+className;
@@ -101,16 +89,29 @@ function addMessage(text,className){
   msg.scrollIntoView({behavior:'smooth',block:'end'});
 }
 
-function showTyping(){
-  if(document.getElementById('typingIndicator')) return;
-  const typing=document.createElement('div');
-  typing.className='typing';
-  typing.id='typingIndicator';
-  typing.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  chatArea.appendChild(typing);
-  typing.scrollIntoView({behavior:'smooth',block:'end'});
+// 공통 함수: Toast
+function showToast(msg,duration=2000){
+  toast.textContent=msg; toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),duration);
+}
+
+// 공통 함수: POST
+async function postData(url='',data={}){
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!res.ok){ const t=await res.text(); throw new Error(t||res.status); }
+  return res.json();
+}
+
+// typing indicator
+function showTyping(){ if(document.getElementById('typingIndicator')) return;
+  const t=document.createElement('div'); t.className='typing'; t.id='typingIndicator';
+  t.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chatArea.appendChild(t); t.scrollIntoView({behavior:'smooth',block:'end'});
 }
 function hideTyping(){ const t=document.getElementById('typingIndicator'); if(t)t.remove(); }
+
+// 초기 AI 메시지
+addMessage(`안녕하세요! ${userId}님, 위대하고 지엄하신 김동은님에 대해 궁금한 점이 있으신가요?`,'ai');
 
 let isRequesting=false;
 async function sendMessage(){
@@ -119,35 +120,16 @@ async function sendMessage(){
   if(!question) return;
   userInput.value='';
   addMessage(question,'user');
-  showTyping();
-  sendBtn.disabled=true; userInput.disabled=true;
-  isRequesting=true;
+  showTyping(); sendBtn.disabled=true; userInput.disabled=true; isRequesting=true;
 
   try{
-    const res=await fetch('https://my-qna-ai.onrender.com/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({userId,role,question})
-    });
-    if(!res.ok){ 
-      let msg='HTTP '+res.status; 
-      try{ const d=await res.json(); if(d?.msg) msg=d.msg;}catch(_){}
-      throw new Error(msg);
-    }
-    const data=await res.json();
+    const data=await postData(`${BASE_URL}/chat`,{userId,role,question});
     addMessage(data.answer||"AI가 답변하지 못했습니다.",'ai');
-  }catch(e){
-    console.error('fetch error:',e);
-    addMessage("AI 응답 실패: "+(e.message||''),'ai');
-  }finally{
-    hideTyping();
-    sendBtn.disabled=false;
-    userInput.disabled=false;
-    userInput.focus();
-    isRequesting=false;
-  }
+  }catch(e){ console.error(e); addMessage("AI 응답 실패",'ai'); showToast(e.message,2500);}
+  finally{ hideTyping(); sendBtn.disabled=false; userInput.disabled=false; userInput.focus(); isRequesting=false; }
 }
 
+// 이벤트
 sendBtn.addEventListener('click',sendMessage);
 userInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); sendMessage();}});
 logoutBtn?.addEventListener('click',()=>{try{localStorage.clear();}catch(e){} window.location.href='login.html';});

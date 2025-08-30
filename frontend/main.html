@@ -5,34 +5,185 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QnA</title>
 <style>
-*{box-sizing:border-box;}
-body{margin:0;height:100vh;display:flex;justify-content:center;align-items:center;background:#000;font-family:Arial,sans-serif;color:#fff;}
-#chatContainer{width:600px;height:100vh;display:flex;flex-direction:column;}
-#chatArea{flex:1;padding:15px;padding-bottom:70px;background:#000;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
-#chatArea::-webkit-scrollbar{width:5px;}
-#chatArea::-webkit-scrollbar-thumb{background:#888;border-radius:2.5px;}
-#chatArea::-webkit-scrollbar-track{background:#111;}
-#inputWrapper{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:600px;background:#000;padding:10px;z-index:100;display:flex;justify-content:center;}
-#inputArea{display:flex;gap:10px;width:100%;}
-#userInput{flex:1;padding:10px;border:1px solid #fff;border-radius:20px;background:#111;color:#fff;font-size:16px;}
-#sendBtn{padding:10px 20px;border:none;border-radius:20px;background:#1E90FF;color:#fff;font-size:16px;cursor:pointer;}
-#sendBtn[disabled]{opacity:0.6;cursor:not-allowed;}
-#sendBtn:hover{background:#63B3FF;}
-.message{max-width:80%;padding:10px 15px;border-radius:15px;line-height:1.4;word-break:break-word;position:relative;animation:slideUpFade 0.3s ease;}
-.user{align-self:flex-end;background-color:#1E90FF;color:#fff;border-bottom-right-radius:0;}
-.ai{align-self:flex-start;background-color:#333;color:#fff;border-bottom-left-radius:0;}
-@keyframes slideUpFade{0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);} }
-#sidebar{position:fixed;top:0;right:0;width:40px;height:100vh;background:#333;display:flex;flex-direction:column;padding:10px;transition:width 0.3s ease;overflow:hidden;z-index:100;}
-#sidebar:hover{width:200px;}
-#logoutBtn{padding:10px;background:#1E90FF;border:none;border-radius:5px;color:#fff;font-size:16px;cursor:pointer;white-space:nowrap;opacity:0;transition:opacity 0.3s ease;}
-#sidebar:hover #logoutBtn{opacity:1;margin-bottom:20px;}
-.version-info{margin-top:auto;margin-bottom:20px;font-size:12px;color:#bbb;text-align:center;opacity:0;transition:opacity 0.3s ease;white-space:nowrap;}
-#sidebar:hover .version-info{opacity:1;}
-.typing { align-self: flex-start; background-color: #333; color: #fff; border-bottom-left-radius: 0; border-radius: 15px; padding: 10px 15px; display: flex; gap: 5px; width: fit-content; }
-.dot { width: 6px; height: 6px; background-color: #fff; border-radius: 50%; animation: blink 1.4s infinite; }
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  /* 메인 채팅 영역 */
+  #chatContainer {
+    width: 600px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #chatArea {
+    flex: 1;
+    padding: 15px;
+    padding-bottom: 70px; /* 입력란 높이만큼 여유 공간 */
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+
+  /* 스크롤바 */
+  #chatArea::-webkit-scrollbar { width: 5px; }
+  #chatArea::-webkit-scrollbar-thumb { background-color: #888; border-radius: 2.5px; }
+  #chatArea::-webkit-scrollbar-track { background-color: #111; }
+
+  /* 입력란 감싸는 박스 */
+  #inputWrapper {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    background-color: #000;
+    padding: 10px;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* 입력 영역 */
+  #inputArea {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  #userInput {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #fff;
+    border-radius: 20px;
+    background-color: #111;
+    color: #fff;
+    font-size: 16px;
+  }
+
+  #sendBtn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    background-color: #1E90FF;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  #sendBtn:hover { background-color: #63B3FF; }
+
+  /* 메시지 스타일 + 애니메이션 */
+  @keyframes slideUpFade {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .message {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    line-height: 1.4;
+    word-break: break-word;
+    position: relative;
+    animation: slideUpFade 0.3s ease;
+  }
+  .user { align-self: flex-end; background-color: #1E90FF; color: #fff; border-bottom-right-radius: 0; }
+  .ai   { align-self: flex-start; background-color: #333; color: #fff; border-bottom-left-radius: 0; }
+
+  /* 오른쪽 사이드바 */
+  #sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 100vh;
+    background-color: #333;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    z-index: 100;
+  }
+
+  #sidebar:hover { width: 200px; }
+
+  #logoutBtn {
+    padding: 10px;
+    background-color: #1E90FF;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  #sidebar:hover #logoutBtn { opacity: 1; margin-bottom: 20px; }
+
+  .version-info {
+    margin-top: auto;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: #bbb;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+  }
+  #sidebar:hover .version-info { opacity: 1; }
+
+  /* 모바일 대응 */
+  @media (max-width: 768px) {
+    #sidebar { display: none; }
+    #chatArea::-webkit-scrollbar { display: none; }
+
+    #logoutBtn {
+      display: block;
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 200;
+      opacity: 1;
+    }
+
+    #chatContainer {
+      width: 95%;
+      height: 100vh; /* 화면 전체 사용 */
+    }
+
+    #chatArea {
+      padding-bottom: 70px; /* 입력란 높이 만큼 여유 공간 */
+    }
+
+    #inputWrapper {
+      width: 95%;
+    }
+
+    #inputArea {
+      width: 100%;
+      flex-direction: row;
+      gap: 10px;
+    }
+
+    #userInput { flex: 1; }
+    #sendBtn { flex-shrink: 0; }
+  }
 </style>
 </head>
 <body>

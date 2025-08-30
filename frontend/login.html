@@ -82,6 +82,9 @@ button {
 </div>
 
 <script>
+// Render 배포 URL
+const BASE_URL = 'https://my-qna-ai.onrender.com';
+
 const loginForm = document.getElementById('loginForm');
 const signupForm = document.getElementById('signupForm');
 const showSignup = document.getElementById('showSignup');
@@ -127,7 +130,7 @@ signupForm.querySelector('.signup-btn').addEventListener('click', async () => {
     }
 
     try {
-        const res = await postData('http://localhost:3000/signup', { userId, password, authCode });
+        const res = await postData(`${BASE_URL}/signup`, { userId, password, authCode });
         alert(res.msg);
         if (res.success) {
             signupForm.classList.add('hidden');
@@ -152,7 +155,7 @@ loginForm.querySelector('.login-btn').addEventListener('click', async () => {
     }
 
     try {
-        const res = await postData('http://localhost:3000/login', { userId, password, role: 'regular' });
+        const res = await postData(`${BASE_URL}/login`, { userId, password, role: 'regular' });
         if (!res.success) { alert('로그인 실패: ' + res.msg); return; }
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('role', res.role);
@@ -166,7 +169,7 @@ loginForm.querySelector('.login-btn').addEventListener('click', async () => {
 // 게스트 로그인
 loginForm.querySelector('.guest-btn').addEventListener('click', async () => {
     try {
-        const res = await postData('http://localhost:3000/login', { role: 'guest' });
+        const res = await postData(`${BASE_URL}/login`, { role: 'guest' });
         if (!res.success) { alert('로그인 실패: ' + res.msg); return; }
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('role', res.role);
@@ -175,9 +178,12 @@ loginForm.querySelector('.guest-btn').addEventListener('click', async () => {
 });
 
 // Enter 키 처리
-loginForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') loginForm.querySelector('.login-btn').click(); }));
-signupForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') signupForm.querySelector('.signup-btn').click(); }));
-
+loginForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { 
+    if (e.key === 'Enter') loginForm.querySelector('.login-btn').click(); 
+}));
+signupForm.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { 
+    if (e.key === 'Enter') signupForm.querySelector('.signup-btn').click(); 
+}));
 </script>
 </body>
 </html>

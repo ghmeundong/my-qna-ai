@@ -154,6 +154,7 @@ userInput.addEventListener('keydown', e => {
   }
 });
 sendBtn.addEventListener('click',sendMessage);
+logoutBtn?.addEventListener('click',()=>{try{localStorage.clear();}catch(e){} window.location.href='login.html';});
 </script>
 </body>
 </html>

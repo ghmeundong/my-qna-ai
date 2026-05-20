@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QnA AI</title>
+    <link rel="stylesheet" href="main_style.css" />
+    <script src="main_script.js" defer></script>
+  </head>
+  <body>
+    <div id="chatContainer">
+      <div id="chatArea"></div>
+      <div id="inputWrapper">
+        <div id="inputArea">
+          <input
+            type="text"
+            id="userInput"
+            placeholder="질문을 입력해주세요"
+            autofocus
+          />
+          <button id="sendBtn">전송</button>
+        </div>
+      </div>
+    </div>
+    <div id="sidebar">
+      <button id="logoutBtn">로그아웃</button>
+      <div class="version-info">v2.0.0 released</div>
+    </div>
+    <div id="toast"></div>
+  </body>
+</html>

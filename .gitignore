@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# 환경 변수
+.env
+
+# 로그 파일
+*.log
+
+# OS별 불필요 파일
+.DS_Store
+Thumbs.db
+
+# 빌드 폴더 (있는 경우)
+dist/
+build/
+
+# 환경/프롬프트 파일 무시
+*.ini

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log In</title>
+    <link rel="stylesheet" href="login_style.css" />
+    <script src="login_script.js" defer></script>
+  </head>
+  <body>
+    <div class="container" id="loginForm">
+      <h1>김동은님의 대리 집무실</h1>
+      <input type="text" placeholder="아이디" id="loginId" autofocus />
+      <input type="password" placeholder="비밀번호" id="loginPw" />
+      <button class="login-btn" id="loginBtn">로그인</button>
+      <button class="signup-btn" id="showSignup">회원가입</button>
+      <button class="guest-btn" id="guestBtn">게스트로 로그인</button>
+      <button id="knockBtn" class="knock-btn">🚪 문 노크하기</button>
+      <p id="typingText" class="info-text"></p>
+    </div>
+    <div class="container hidden" id="signupForm">
+      <input type="text" placeholder="아이디" id="signupId" autofocus />
+      <div class="input-with-help">
+        <input type="password" placeholder="비밀번호" id="signupPw" />
+        <span class="help-icon">?</span>
+        <div class="help-box">
+          비밀번호는 단방향 함수로 암호화 되어 데이터 베이스에 저장됩니다
+        </div>
+      </div>
+      <input type="password" placeholder="비밀번호 확인" id="signupPw2" />
+      <div class="input-with-help">
+        <input type="text" placeholder="인증 코드" id="signupCode" />
+        <span class="help-icon">?</span>
+        <div class="help-box">
+          인증 코드는 정보 접근 권한을 식별하기 위한 필수 요소입니다.<br />힌트:
+          꽃 이름
+        </div>
+      </div>
+      <button class="signup-btn" id="signupBtn">회원가입</button>
+      <button class="login-btn" id="backLogin">로그인으로</button>
+    </div>
+    <div id="toast"></div>
+  </body>
+</html>

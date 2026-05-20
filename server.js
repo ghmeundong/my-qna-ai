@@ -4,6 +4,75 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 const url = require("url");
+const express = require('express');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// MongoDB 연결
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error(err));
+
+// User 모델 정의
+const userSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  authCode: { type: String } // 회원가입 시 인증 코드
+});
+const User = mongoose.model('User', userSchema);
+
+app.post('/signup', async (req, res) => {
+  const { userId, password, authCode } = req.body;
+
+  // 필수 입력 확인
+  if (!userId || !password || !authCode) {
+    return res.json({ success: false, msg: '모든 항목을 입력해주세요.' });
+  }
+
+  // 인증 코드 검증
+  if (authCode !== 'nontiscordardime') {
+    return res.json({ success: false, msg: '인증 코드가 올바르지 않습니다.' });
+  }
+
+  // 비밀번호 해시
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+    const newUser = new User({ userId, password: hashedPassword });
+    await newUser.save();
+    res.json({ success: true, msg: '회원가입 성공!' });
+  } catch (err) {
+    res.json({ success: false, msg: '회원가입 실패', error: err });
+  }
+});
+
+app.post('/login', async (req, res) => {
+  const { userId, password, role } = req.body;
+
+  // 게스트 로그인 처리
+  if (role === 'guest') {
+    return res.json({ success: true, userId: 'guest', role: 'guest', msg: '게스트 로그인 성공' });
+  }
+
+  const user = await User.findOne({ userId });
+  if (!user) {
+    return res.json({ success: false, msg: '사용자를 찾을 수 없습니다.' });
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.json({ success: false, msg: '비밀번호가 틀렸습니다.' });
+  }
+
+  res.json({ success: true, userId: user.userId, role: role || 'regular', msg: '로그인 성공!' });
+});
+
 
 // .env 읽기
 const envPath = path.join(__dirname, ".env");

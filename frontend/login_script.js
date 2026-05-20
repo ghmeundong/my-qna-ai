@@ -6,6 +6,8 @@ const showSignup = document.getElementById("showSignup");
 const backLogin = document.getElementById("backLogin");
 const toast = document.getElementById("toast");
 
+
+
 // 화면 전환
 showSignup.addEventListener("click", () => {
   loginForm.classList.add("hidden");
@@ -153,3 +155,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }),
   ),
 );
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

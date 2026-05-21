@@ -14,6 +14,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "login.html"));
+});
+
+
 // MongoDB 연결
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))

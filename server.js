@@ -1,31 +1,32 @@
 // server.js
-const systemPrompt = fs.readFileSync(path.join(__dirname, "prompt.ini"), "utf8");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
 const url = require("url");
-const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const cors = require("cors");
 require("dotenv").config();
 
-const app = express();
-app.use(express.json());
-app.use(cors());
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend", "login.html"));
-});
-
+// prompt.ini 읽기
+const promptPath = path.join(__dirname, "prompt.ini");
+let CUSTOM_PROMPT = "";
+if (fs.existsSync(promptPath)) {
+  const lines = fs.readFileSync(promptPath, "utf-8").split("\n");
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+    const [key, ...vals] = line.split("=");
+    if (key.trim() === "PROMPT") CUSTOM_PROMPT = vals.join("=").trim();
+  });
+}
+console.log("Custom prompt loaded, length:", CUSTOM_PROMPT.length);
 
 // MongoDB 연결
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.error(err));
 
-// User 모델 정의
+// User 모델
 const userSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -33,7 +34,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model("User", userSchema);
 
-// Chat 모델 정의
+// Chat 모델
 const chatSchema = new mongoose.Schema({
   userId: String,
   role: String,
@@ -43,94 +44,17 @@ const chatSchema = new mongoose.Schema({
 });
 const Chat = mongoose.model("Chat", chatSchema);
 
-// 회원가입
-app.post("/signup", async (req, res) => {
-  const { userId, password, authCode } = req.body;
-  if (!userId || !password || !authCode) {
-    return res.json({ success: false, msg: "모든 항목을 입력해주세요." });
-  }
-  if (authCode !== "nontiscordardime") {
-    return res.json({ success: false, msg: "인증 코드가 올바르지 않습니다." });
-  }
+// JSON 응답
+function jsonRes(res, obj, status = 200) {
+  const body = JSON.stringify(obj);
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(body),
+  });
+  res.end(body);
+}
 
-  try {
-    const existing = await User.findOne({ userId });
-    if (existing) {
-      return res.json({ success: false, msg: "이미 존재하는 아이디" });
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ userId, password: hashedPassword });
-    await newUser.save();
-    res.json({ success: true, msg: "회원가입 성공!" });
-  } catch (err) {
-    res.json({ success: false, msg: "회원가입 실패", error: err });
-  }
-});
-
-// 로그인
-app.post("/login", async (req, res) => {
-  const { userId, password, role } = req.body;
-  if (role === "guest") {
-    return res.json({ success: true, userId: "guest", role: "guest", msg: "게스트 로그인 성공" });
-  }
-
-  try {
-    const user = await User.findOne({ userId });
-    if (!user) {
-      return res.json({ success: false, msg: "사용자를 찾을 수 없습니다." });
-    }
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.json({ success: false, msg: "비밀번호가 틀렸습니다." });
-    }
-    res.json({ success: true, userId: user.userId, role: user.role, msg: "로그인 성공!" });
-  } catch (err) {
-    res.json({ success: false, msg: "로그인 실패", error: err });
-  }
-});
-
-// 채팅
-app.post("/chat", async (req, res) => {
-  const { userId, role, question } = req.body;
-  if (!question) {
-    return res.json({ success: false, msg: "question 필요" });
-  }
-
-  try {
-    // 최근 대화 불러오기
-    const recentChats = await Chat.find({ userId }).sort({ timestamp: -1 }).limit(Number(process.env.RECENT_PAIRS) || 1);
-
-    const messages = [
-      { role: "system", content: systemPrompt }
-    ];
-    recentChats.reverse().forEach(c => {
-      if (c.question) messages.push({ role: "user", content: c.question });
-      if (c.answer) messages.push({ role: "assistant", content: c.answer });
-    });
-    messages.push({ role: "user", content: question });
-
-    // ChatGPT 호출
-    callChatGPT(messages, async (err, aiAnswer) => {
-      if (err) {
-        return res.json({ success: false, msg: "AI 호출 실패", error: err });
-      }
-      const newChat = new Chat({ userId, role, question, answer: aiAnswer });
-      await newChat.save();
-      res.json({ success: true, answer: aiAnswer });
-    });
-  } catch (err) {
-    res.json({ success: false, msg: "채팅 실패", error: err });
-  }
-});
-
-// 정적 파일 제공
-app.use(express.static(path.join(__dirname, "frontend")));
-
-// 서버 실행
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-// ChatGPT 호출 함수 (원래 코드 그대로 유지)
+// ChatGPT 호출
 function callChatGPT(messages, callback) {
   const postData = JSON.stringify({
     model: "gpt-4o-mini",
@@ -157,6 +81,7 @@ function callChatGPT(messages, callback) {
       try {
         const json = JSON.parse(body);
         const answer = json?.choices?.[0]?.message?.content;
+        if (!answer) return callback(new Error("OpenAI 응답에 content 없음"));
         callback(null, answer);
       } catch (err) {
         callback(err);
@@ -168,3 +93,125 @@ function callChatGPT(messages, callback) {
   req.write(postData);
   req.end();
 }
+
+const RECENT_PAIRS = process.env.RECENT_PAIRS ? Number(process.env.RECENT_PAIRS) : 1;
+const PORT = process.env.PORT || 3000;
+
+const server = http.createServer((req, res) => {
+  const parsed = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = parsed.pathname || "/";
+
+  if (req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", async () => {
+      let data;
+      try {
+        data = JSON.parse(body || "{}");
+      } catch {
+        data = {};
+      }
+
+      try {
+        // 회원가입
+        if (pathname === "/signup") {
+          const { userId, password, authCode } = data;
+          if (authCode !== "nontiscordardime")
+            return jsonRes(res, { success: false, msg: "인증 코드 잘못됨" }, 400);
+
+          if (!userId || !password)
+            return jsonRes(res, { success: false, msg: "userId와 password 필요" }, 400);
+
+          const exists = await User.findOne({ userId });
+          if (exists)
+            return jsonRes(res, { success: false, msg: "이미 존재하는 아이디" }, 409);
+
+          const newUser = new User({ userId, password });
+          await newUser.save();
+          return jsonRes(res, { success: true, msg: "회원가입 성공!" });
+        }
+
+        // 로그인
+        if (pathname === "/login") {
+          const { userId, password, role } = data;
+          if (role === "guest") {
+            const guestId = `guest_${Date.now()}`;
+            return jsonRes(res, { success: true, userId: guestId, role: "guest" });
+          }
+
+          if (!userId || !password)
+            return jsonRes(res, { success: false, msg: "userId와 password 필요" }, 400);
+
+          const user = await User.findOne({ userId, password });
+          if (!user)
+            return jsonRes(res, { success: false, msg: "아이디 또는 비밀번호 틀림" }, 401);
+
+          return jsonRes(res, { success: true, userId: user.userId, role: user.role });
+        }
+
+        // 채팅
+        if (pathname === "/chat") {
+          const { userId, role, question } = data;
+          if (!question)
+            return jsonRes(res, { success: false, msg: "question 필요" }, 400);
+
+          const recentChats = await Chat.find({ userId })
+            .sort({ timestamp: -1 })
+            .limit(RECENT_PAIRS);
+
+          const messages = [
+            { role: "system", content: CUSTOM_PROMPT || "기본 프롬프트 내용" },
+          ];
+          recentChats.reverse().forEach((c) => {
+            if (c.question) messages.push({ role: "user", content: c.question });
+            if (c.answer) messages.push({ role: "assistant", content: c.answer });
+          });
+          messages.push({ role: "user", content: question });
+
+          callChatGPT(messages, async (err, aiAnswer) => {
+            if (err) {
+              return jsonRes(res, { success: false, msg: "AI 호출 실패" }, 500);
+            }
+            await Chat.create({ userId, role, question, answer: aiAnswer });
+            jsonRes(res, { success: true, answer: aiAnswer });
+          });
+          return;
+        }
+
+        return jsonRes(res, { success: false, msg: "알 수 없는 POST 경로" }, 404);
+      } catch (err) {
+        return jsonRes(res, { success: false, msg: "서버 오류", error: err }, 500);
+      }
+    });
+    return;
+  }
+
+  // GET → 정적 파일 제공
+  const baseDir = path.resolve(__dirname, "frontend");
+  const target = pathname === "/" ? "login.html" : pathname.replace(/^\/+/, "");
+  const resolved = path.resolve(baseDir, target);
+  if (!resolved.startsWith(baseDir)) {
+    res.writeHead(400);
+    res.end("Bad request");
+    return;
+  }
+
+  fs.readFile(resolved, (err, content) => {
+    if (err) {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
+    const ext = path.extname(resolved).toLowerCase();
+    const mimeTypes = {
+      ".html": "text/html",
+      ".js": "application/javascript",
+      ".css": "text/css",
+      ".json": "application/json",
+    };
+    res.writeHead(200, { "Content-Type": mimeTypes[ext] || "text/plain" });
+    res.end(content);
+  });
+});
+
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

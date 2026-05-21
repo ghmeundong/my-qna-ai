@@ -1,4 +1,5 @@
 // server.js
+const systemPrompt = fs.readFileSync(path.join(__dirname, "prompt.ini"), "utf8");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -100,7 +101,7 @@ app.post("/chat", async (req, res) => {
     const recentChats = await Chat.find({ userId }).sort({ timestamp: -1 }).limit(Number(process.env.RECENT_PAIRS) || 1);
 
     const messages = [
-      { role: "system", content: "기본 프롬프트 내용" }
+      { role: "system", content: systemPrompt }
     ];
     recentChats.reverse().forEach(c => {
       if (c.question) messages.push({ role: "user", content: c.question });

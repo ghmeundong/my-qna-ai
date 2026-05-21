@@ -5,6 +5,7 @@ const path = require("path");
 const https = require("https");
 const url = require("url");
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 require("dotenv").config();
 
 // prompt.ini 읽기
@@ -22,15 +23,16 @@ if (fs.existsSync(promptPath)) {
 console.log("Custom prompt loaded, length:", CUSTOM_PROMPT.length);
 
 // MongoDB 연결
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
+  .catch((err) => console.error(err));
 
 // User 모델
 const userSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: "regular" }
+  role: { type: String, default: "regular" },
 });
 const User = mongoose.model("User", userSchema);
 
@@ -40,7 +42,7 @@ const chatSchema = new mongoose.Schema({
   role: String,
   question: String,
   answer: String,
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
 });
 const Chat = mongoose.model("Chat", chatSchema);
 
@@ -94,7 +96,9 @@ function callChatGPT(messages, callback) {
   req.end();
 }
 
-const RECENT_PAIRS = process.env.RECENT_PAIRS ? Number(process.env.RECENT_PAIRS) : 1;
+const RECENT_PAIRS = process.env.RECENT_PAIRS
+  ? Number(process.env.RECENT_PAIRS)
+  : 1;
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
@@ -117,16 +121,29 @@ const server = http.createServer((req, res) => {
         if (pathname === "/signup") {
           const { userId, password, authCode } = data;
           if (authCode !== "nontiscordardime")
-            return jsonRes(res, { success: false, msg: "인증 코드 잘못됨" }, 400);
+            return jsonRes(
+              res,
+              { success: false, msg: "인증 코드 잘못됨" },
+              400,
+            );
 
           if (!userId || !password)
-            return jsonRes(res, { success: false, msg: "userId와 password 필요" }, 400);
+            return jsonRes(
+              res,
+              { success: false, msg: "userId와 password 필요" },
+              400,
+            );
 
           const exists = await User.findOne({ userId });
           if (exists)
-            return jsonRes(res, { success: false, msg: "이미 존재하는 아이디" }, 409);
+            return jsonRes(
+              res,
+              { success: false, msg: "이미 존재하는 아이디" },
+              409,
+            );
 
-          const newUser = new User({ userId, password });
+          const hashedPassword = await bcrypt.hash(password, 10); // saltRounds = 10
+          const newUser = new User({ userId, password: hashedPassword });
           await newUser.save();
           return jsonRes(res, { success: true, msg: "회원가입 성공!" });
         }
@@ -136,17 +153,41 @@ const server = http.createServer((req, res) => {
           const { userId, password, role } = data;
           if (role === "guest") {
             const guestId = `guest_${Date.now()}`;
-            return jsonRes(res, { success: true, userId: guestId, role: "guest" });
+            return jsonRes(res, {
+              success: true,
+              userId: guestId,
+              role: "guest",
+            });
           }
 
           if (!userId || !password)
-            return jsonRes(res, { success: false, msg: "userId와 password 필요" }, 400);
+            return jsonRes(
+              res,
+              { success: false, msg: "userId와 password 필요" },
+              400,
+            );
 
-          const user = await User.findOne({ userId, password });
+          const user = await User.findOne({ userId });
           if (!user)
-            return jsonRes(res, { success: false, msg: "아이디 또는 비밀번호 틀림" }, 401);
+            return jsonRes(
+              res,
+              { success: false, msg: "아이디 또는 비밀번호 틀림" },
+              401,
+            );
 
-          return jsonRes(res, { success: true, userId: user.userId, role: user.role });
+          const match = await bcrypt.compare(password, user.password);
+          if (!match)
+            return jsonRes(
+              res,
+              { success: false, msg: "아이디 또는 비밀번호 틀림" },
+              401,
+            );
+
+          return jsonRes(res, {
+            success: true,
+            userId: user.userId,
+            role: user.role,
+          });
         }
 
         // 채팅
@@ -163,8 +204,10 @@ const server = http.createServer((req, res) => {
             { role: "system", content: CUSTOM_PROMPT || "기본 프롬프트 내용" },
           ];
           recentChats.reverse().forEach((c) => {
-            if (c.question) messages.push({ role: "user", content: c.question });
-            if (c.answer) messages.push({ role: "assistant", content: c.answer });
+            if (c.question)
+              messages.push({ role: "user", content: c.question });
+            if (c.answer)
+              messages.push({ role: "assistant", content: c.answer });
           });
           messages.push({ role: "user", content: question });
 
@@ -178,9 +221,17 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        return jsonRes(res, { success: false, msg: "알 수 없는 POST 경로" }, 404);
+        return jsonRes(
+          res,
+          { success: false, msg: "알 수 없는 POST 경로" },
+          404,
+        );
       } catch (err) {
-        return jsonRes(res, { success: false, msg: "서버 오류", error: err }, 500);
+        return jsonRes(
+          res,
+          { success: false, msg: "서버 오류", error: err },
+          500,
+        );
       }
     });
     return;

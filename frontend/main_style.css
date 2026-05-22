@@ -126,6 +126,14 @@ body {
   overflow: hidden;
   z-index: 100;
 }
+#sidebar.expanded {
+  width: 200px;
+}
+#sidebar.expanded #logoutBtn,
+#sidebar.expanded .version-info {
+  opacity: 1;
+}
+
 #sidebar:hover {
   width: 200px;
 }
@@ -140,6 +148,9 @@ body {
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.3s ease;
+}
+#logoutBtn:hover {
+  background-color: #63b3ff;
 }
 #sidebar:hover #logoutBtn {
   opacity: 1;

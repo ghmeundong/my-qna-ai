@@ -1,11 +1,11 @@
+const BASE_URL = "https://my-qna-ai.onrender.com";
+// const BASE_URL = "http://localhost:3000";
 const chatArea = document.getElementById("chatArea");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
+const sidebar = document.getElementById("sidebar");
 const logoutBtn = document.getElementById("logoutBtn");
 const toast = document.getElementById("toast");
-const BASE_URL = "https://my-qna-ai.onrender.com";
-// const BASE_URL = "http://localhost:3000";
-
 const params = new URLSearchParams(window.location.search);
 const userId =
   params.get("userId") ||
@@ -25,7 +25,14 @@ function addMessage(text, className) {
   msg.className = "message " + className;
   msg.textContent = text;
   chatArea.appendChild(msg);
-  msg.scrollIntoView({ behavior: "smooth", block: "end" });
+
+  // DOM 렌더링 후 부드럽게 최하단으로 스크롤
+  requestAnimationFrame(() => {
+    chatArea.scrollTo({
+      top: chatArea.scrollHeight,
+      behavior: "smooth"
+    });
+  });
 }
 
 // 공통 함수: Toast
@@ -58,7 +65,14 @@ function showTyping() {
   t.innerHTML =
     '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
   chatArea.appendChild(t);
-  t.scrollIntoView({ behavior: "smooth", block: "end" });
+
+  // 인디케이터가 추가될 때도 스크롤
+  requestAnimationFrame(() => {
+    chatArea.scrollTo({
+      top: chatArea.scrollHeight,
+      behavior: "smooth"
+    });
+  });
 }
 function hideTyping() {
   const t = document.getElementById("typingIndicator");
@@ -117,3 +131,15 @@ logoutBtn?.addEventListener("click", () => {
   } catch (e) {}
   window.location.href = "login.html";
 });
+
+
+// 페이지 로드 시 기본 펼침
+document.addEventListener("DOMContentLoaded", () => {
+  sidebar.classList.add("expanded");
+});
+
+// 입력창 입력 시 숨김
+userInput.addEventListener("input", () => {
+  sidebar.classList.remove("expanded");
+});
+

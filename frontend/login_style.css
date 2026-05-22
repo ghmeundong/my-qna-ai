@@ -11,12 +11,16 @@ h1 {
   word-break: keep-all;
   white-space: nowrap;
 }
+.hidden-title {
+  visibility: hidden;
+}
+
 body {
   margin: 0;
   height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding-top: 12vh;
   background-color: #000;
   font-family: Arial, sans-serif;

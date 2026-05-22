@@ -25,7 +25,11 @@ function addMessage(text, className) {
   msg.textContent = text;
   chatArea.appendChild(msg);
 
-  // DOM 렌더링 후 부드럽게 최하단으로 스크롤
+  scrollChatToBottom();
+}
+
+// 공통 함수: 채팅 영역 스크롤
+function scrollChatToBottom() {
   requestAnimationFrame(() => {
     chatArea.scrollTo({
       top: chatArea.scrollHeight,
@@ -131,6 +135,9 @@ logoutBtn?.addEventListener("click", () => {
   window.location.href = "login.html";
 });
 
+userInput.addEventListener("focus", () => {
+  scrollChatToBottom();
+});
 
 // 페이지 로드 시 기본 펼침
 document.addEventListener("DOMContentLoaded", () => {

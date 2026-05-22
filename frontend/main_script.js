@@ -1,5 +1,4 @@
-const BASE_URL = "https://my-qna-ai.onrender.com";
-// const BASE_URL = "http://localhost:3000";
+const BASE_URL = "";
 const chatArea = document.getElementById("chatArea");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");

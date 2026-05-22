@@ -1,5 +1,4 @@
-const BASE_URL = "https://my-qna-ai.onrender.com";
-// const BASE_URL = "http://localhost:3000";
+const BASE_URL = "";
 const loginForm = document.getElementById("loginForm");
 const signupForm = document.getElementById("signupForm");
 const showSignup = document.getElementById("showSignup");

@@ -3,8 +3,8 @@ const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const toast = document.getElementById("toast");
-const BASE_URL = "https://my-qna-ai.onrender.com";
-// const BASE_URL = "http://localhost:3000";
+// const BASE_URL = "https://my-qna-ai.onrender.com";
+const BASE_URL = "http://localhost:3000";
 
 const params = new URLSearchParams(window.location.search);
 const userId =

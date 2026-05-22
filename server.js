@@ -8,19 +8,12 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
 
-// prompt.ini 읽기
-const promptPath = path.join(__dirname, "prompt.ini");
-let CUSTOM_PROMPT = "";
-if (fs.existsSync(promptPath)) {
-  const lines = fs.readFileSync(promptPath, "utf-8").split("\n");
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) return;
-    const [key, ...vals] = line.split("=");
-    if (key.trim() === "PROMPT") CUSTOM_PROMPT = vals.join("=").trim();
-  });
-}
-console.log("Custom prompt loaded, length:", CUSTOM_PROMPT.length);
+// prompt
+const promptSchema = new mongoose.Schema({
+  role: { type: String, required: true, unique: true },
+  content: { type: String, required: true },
+});
+const Prompt = mongoose.model("Prompt", promptSchema);
 
 // MongoDB 연결
 mongoose
@@ -200,9 +193,11 @@ const server = http.createServer((req, res) => {
             .sort({ timestamp: -1 })
             .limit(RECENT_PAIRS);
 
-          const messages = [
-            { role: "system", content: CUSTOM_PROMPT || "기본 프롬프트 내용" },
-          ];
+          // DB에서 role별 프롬프트 가져오기
+          const promptDoc = await Prompt.findOne({ role });
+          const systemPrompt = promptDoc ? promptDoc.content : "기본 프롬프트";
+
+          const messages = [{ role: "system", content: systemPrompt }];
           recentChats.reverse().forEach((c) => {
             if (c.question)
               messages.push({ role: "user", content: c.question });
@@ -220,7 +215,6 @@ const server = http.createServer((req, res) => {
           });
           return;
         }
-
         return jsonRes(
           res,
           { success: false, msg: "알 수 없는 POST 경로" },

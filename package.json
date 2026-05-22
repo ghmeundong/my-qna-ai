@@ -1,6 +1,6 @@
 {
   "name": "my-qna-ai",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "QnA AI web app by ghmeundong",
   "main": "server.js",
   "scripts": {

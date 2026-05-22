@@ -231,32 +231,67 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // GET → 정적 파일 제공
-  const baseDir = path.resolve(__dirname, "frontend");
-  const target = pathname === "/" ? "login.html" : pathname.replace(/^\/+/, "");
-  const resolved = path.resolve(baseDir, target);
-  if (!resolved.startsWith(baseDir)) {
-    res.writeHead(400);
-    res.end("Bad request");
-    return;
-  }
+  if (req.method === "GET") {
+    // 대화 내역 조회 (무한 스크롤용)
+    if (pathname === "/history") {
+      const userId = parsed.searchParams.get("userId");
+      const skip = parseInt(parsed.searchParams.get("skip") || "0");
+      const limit = parseInt(parsed.searchParams.get("limit") || "5");
 
-  fs.readFile(resolved, (err, content) => {
-    if (err) {
-      res.writeHead(404);
-      res.end("Not found");
+      if (!userId) {
+        return jsonRes(res, { success: false, msg: "userId 필요" }, 400);
+      }
+
+      (async () => {
+        try {
+          const chats = await Chat.find({ userId })
+            .sort({ timestamp: -1 })
+            .skip(skip)
+            .limit(limit);
+
+          return jsonRes(res, {
+            success: true,
+            chats,
+            hasMore: chats.length === limit,
+          });
+        } catch (err) {
+          return jsonRes(
+            res,
+            { success: false, msg: "대화 조회 실패" },
+            500,
+          );
+        }
+      })();
       return;
     }
-    const ext = path.extname(resolved).toLowerCase();
-    const mimeTypes = {
-      ".html": "text/html",
-      ".js": "application/javascript",
-      ".css": "text/css",
-      ".json": "application/json",
-    };
-    res.writeHead(200, { "Content-Type": mimeTypes[ext] || "text/plain" });
-    res.end(content);
-  });
+
+    // GET → 정적 파일 제공
+    const baseDir = path.resolve(__dirname, "frontend");
+    const target = pathname === "/" ? "login.html" : pathname.replace(/^\/+/, "");
+    const resolved = path.resolve(baseDir, target);
+    if (!resolved.startsWith(baseDir)) {
+      res.writeHead(400);
+      res.end("Bad request");
+      return;
+    }
+
+    fs.readFile(resolved, (err, content) => {
+      if (err) {
+        res.writeHead(404);
+        res.end("Not found");
+        return;
+      }
+      const ext = path.extname(resolved).toLowerCase();
+      const mimeTypes = {
+        ".html": "text/html",
+        ".js": "application/javascript",
+        ".css": "text/css",
+        ".json": "application/json",
+      };
+      res.writeHead(200, { "Content-Type": mimeTypes[ext] || "text/plain" });
+      res.end(content);
+    });
+  }
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

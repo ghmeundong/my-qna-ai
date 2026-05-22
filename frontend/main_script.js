@@ -89,6 +89,42 @@ addMessage(
 );
 
 let isRequesting = false;
+let isLoadingHistory = false;
+let historySkip = 0;
+const historyLimit = 5;
+
+// 대화 내역 로드 (무한 스크롤)
+async function loadHistory() {
+  if (isLoadingHistory || userId.startsWith("guest_")) return; // 게스트면 로드 안 함
+  
+  isLoadingHistory = true;
+  try {
+    const res = await fetch(
+      `/history?userId=${userId}&skip=${historySkip}&limit=${historyLimit}`
+    );
+    const data = await res.json();
+
+    if (data.success && data.chats.length > 0) {
+      // 역순으로 표시 (오래된 것부터 맨 위로)
+      const scrollTopBefore = chatArea.scrollHeight;
+      data.chats.reverse().forEach((chat) => {
+        addMessage(chat.question, "user");
+        addMessage(chat.answer, "ai");
+      });
+      
+      // 스크롤 위치 유지
+      requestAnimationFrame(() => {
+        chatArea.scrollTop = chatArea.scrollHeight - scrollTopBefore;
+      });
+
+      historySkip += historyLimit;
+    }
+  } catch (e) {
+    console.error("대화 내역 로드 실패:", e);
+  } finally {
+    isLoadingHistory = false;
+  }
+}
 
 async function sendMessage() {
   if (isRequesting) return;
@@ -142,10 +178,19 @@ userInput.addEventListener("focus", () => {
 // 페이지 로드 시 기본 펼침
 document.addEventListener("DOMContentLoaded", () => {
   sidebar.classList.add("expanded");
+  // 대화 내역 불러오기
+  loadHistory();
 });
 
 // 입력창 입력 시 숨김
 userInput.addEventListener("input", () => {
   sidebar.classList.remove("expanded");
+});
+
+// 무한 스크롤: 스크롤 맨 위로 올리면 이전 대화 로드
+chatArea.addEventListener("scroll", () => {
+  if (chatArea.scrollTop < 50 && !isLoadingHistory) {
+    loadHistory();
+  }
 });
 

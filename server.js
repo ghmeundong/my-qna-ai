@@ -59,7 +59,7 @@ const server = http.createServer((req, res) => {
   // GET 요청 처리
   if (req.method === "GET") {
     if (pathname === "/history") {
-      await handleHistory(parsed, res);
+      handleHistory(parsed, res);
     } else {
       handleStaticFiles(pathname, res);
     }

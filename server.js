@@ -4,9 +4,9 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 // 모델 임포트
-const User = require("./models/User");
-const Chat = require("./models/Chat");
-const Prompt = require("./models/Prompt");
+const User = require("./models/user");
+const Chat = require("./models/chat");
+const Prompt = require("./models/prompt");
 
 // 라우트 임포트
 const { handleSignup, handleLogin } = require("./routes/auth");

@@ -1,7 +1,7 @@
 const { jsonRes } = require("../utils/response");
 const { callChatGPT } = require("../utils/chatgpt");
-const Chat = require("../models/Chat");
-const Prompt = require("../models/Prompt");
+const Chat = require("../models/chat");
+const Prompt = require("../models/prompt");
 
 const RECENT_PAIRS = process.env.RECENT_PAIRS
   ? Number(process.env.RECENT_PAIRS)

@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const { jsonRes } = require("../utils/response");
-const User = require("../models/User");
+const User = require("../models/user");
 
 async function handleSignup(data, res) {
   const { userId, password, authCode } = data;

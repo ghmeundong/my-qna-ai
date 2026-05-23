@@ -82,6 +82,23 @@ function hideTyping() {
   if (t) t.remove();
 }
 
+// 방문자 기록 함수
+async function recordVisitor() {
+  try {
+    const visitorData = {
+      userId: userId,
+      role: role,
+      guestId: role === "guest" ? userId : null,
+    };
+    await postData("/visitor", visitorData);
+  } catch (e) {
+    console.error("방문자 기록 실패:", e);
+  }
+}
+
+// 페이지 로드 시 방문자 기록
+recordVisitor();
+
 // 초기 AI 메시지
 addMessage(
   `안녕하세요! ${userId}님, 위대하고 지엄하신 김동은님에 대해 궁금한 점이 있으신가요?`,

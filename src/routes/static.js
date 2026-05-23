@@ -3,8 +3,19 @@ const path = require("path");
 const { jsonRes } = require("../utils/response");
 
 function handleStaticFiles(pathname, res) {
-  const baseDir = path.resolve(__dirname, "../frontend");
-  const target = pathname === "/" ? "login.html" : pathname.replace(/^\/+/, "");
+  const baseDir = path.resolve(__dirname, "../../frontend");
+  let target = pathname === "/" ? "login.html" : pathname.replace(/^\/+/, "");
+  const ext = path.extname(target).toLowerCase();
+
+  // 파일 확장자에 따라 폴더 분류
+  if (ext === ".html") {
+    target = `html/${target}`;
+  } else if (ext === ".js") {
+    target = `js/${target}`;
+  } else if (ext === ".css") {
+    target = `css/${target}`;
+  }
+
   const resolved = path.resolve(baseDir, target);
 
   if (!resolved.startsWith(baseDir)) {
@@ -19,7 +30,6 @@ function handleStaticFiles(pathname, res) {
       res.end("Not found");
       return;
     }
-    const ext = path.extname(resolved).toLowerCase();
     const mimeTypes = {
       ".html": "text/html",
       ".js": "application/javascript",

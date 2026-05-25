@@ -110,6 +110,34 @@ let isLoadingHistory = false;
 let historySkip = 0;
 const historyLimit = 5;
 
+function prependMessage(text, className) {
+  const msg = document.createElement("div");
+  msg.className = "message " + className;
+  msg.textContent = text;
+  chatArea.insertBefore(msg, chatArea.firstChild);
+}
+
+function appendHistoryMessages(chats) {
+  chats.forEach((chat) => {
+    addMessage(chat.question, "user");
+    addMessage(chat.answer, "ai");
+  });
+}
+
+function prependHistoryMessages(chats) {
+  const previousScrollHeight = chatArea.scrollHeight;
+  const previousScrollTop = chatArea.scrollTop;
+
+  chats.slice().reverse().forEach((chat) => {
+    prependMessage(chat.answer, "ai");
+    prependMessage(chat.question, "user");
+  });
+
+  requestAnimationFrame(() => {
+    chatArea.scrollTop = chatArea.scrollHeight - previousScrollHeight + previousScrollTop;
+  });
+}
+
 // 대화 내역 로드 (무한 스크롤)
 async function loadHistory() {
   if (isLoadingHistory || userId.startsWith("guest_")) return; // 게스트면 로드 안 함
@@ -122,17 +150,14 @@ async function loadHistory() {
     const data = await res.json();
 
     if (data.success && data.chats.length > 0) {
-      // 역순으로 표시 (오래된 것부터 맨 위로)
-      const scrollTopBefore = chatArea.scrollHeight;
-      data.chats.reverse().forEach((chat) => {
-        addMessage(chat.question, "user");
-        addMessage(chat.answer, "ai");
-      });
-      
-      // 스크롤 위치 유지
-      requestAnimationFrame(() => {
-        chatArea.scrollTop = chatArea.scrollHeight - scrollTopBefore;
-      });
+      const chats = data.chats.reverse();
+
+      if (historySkip === 0) {
+        appendHistoryMessages(chats);
+        requestAnimationFrame(scrollChatToBottom);
+      } else {
+        prependHistoryMessages(chats);
+      }
 
       historySkip += historyLimit;
     }

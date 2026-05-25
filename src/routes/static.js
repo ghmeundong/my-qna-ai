@@ -4,15 +4,15 @@ const { jsonRes } = require("../utils/response");
 
 function handleStaticFiles(pathname, res) {
   const baseDir = path.resolve(__dirname, "../../frontend");
-  let target = pathname === "/" ? "login.html" : pathname.replace(/^\/+/, "");
+  let target = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
   const ext = path.extname(target).toLowerCase();
 
   // 파일 확장자에 따라 폴더 분류
-  if (ext === ".html") {
-    target = `html/${target}`;
-  } else if (ext === ".js") {
+  if (target.startsWith("assets/")) {
+    // assets 폴더는 그대로 처리
+  } else if (ext === ".js" && !target.startsWith("js/")) {
     target = `js/${target}`;
-  } else if (ext === ".css") {
+  } else if (ext === ".css" && !target.startsWith("css/")) {
     target = `css/${target}`;
   }
 
@@ -35,6 +35,10 @@ function handleStaticFiles(pathname, res) {
       ".js": "application/javascript",
       ".css": "text/css",
       ".json": "application/json",
+      ".woff2": "font/woff2",
+      ".woff": "font/woff",
+      ".ttf": "font/ttf",
+      ".otf": "font/otf",
     };
     res.writeHead(200, { "Content-Type": mimeTypes[ext] || "text/plain" });
     res.end(content);

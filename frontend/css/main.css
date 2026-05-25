@@ -8,9 +8,13 @@ body {
   justify-content: center;
   align-items: center;
   background: #000;
-  font-family: Arial, sans-serif;
-  color: #fff;
   overflow: hidden;
+}
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 #chatContainer {
   width: 600px;

@@ -41,20 +41,18 @@ async function handleVisitor(req, data, res) {
       await guestRecord.save();
       return jsonRes(res, { success: true, msg: "게스트 방문 기록됨" });
     } else {
-      // 로그인 사용자: 기존 기록 확인 후 visitCount 증가
+      // 로그인 사용자: userId+ip 쌍이 동일할 때만 같은 방문자로 간주
       const existingRecord = await Guestbook.findOne({
         userId: userId,
+        ip: ip,
         role: "user",
       });
 
       if (existingRecord) {
-        // 기존 기록 업데이트
         existingRecord.visitCount += 1;
-        existingRecord.ip = ip; // IP 업데이트 (변경되었을 수 있음)
         existingRecord.timestamp = new Date();
         await existingRecord.save();
       } else {
-        // 새로운 기록 생성
         const userRecord = new Guestbook({
           userId: userId,
           ip: ip,

@@ -15,7 +15,7 @@ if (!userId) {
   try {
     localStorage.clear();
   } catch (e) {}
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 }
 
 // 공통 함수: 메시지 추가
@@ -185,7 +185,7 @@ logoutBtn?.addEventListener("click", () => {
   try {
     localStorage.clear();
   } catch (e) {}
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 });
 
 userInput.addEventListener("focus", () => {

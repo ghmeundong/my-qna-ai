@@ -88,7 +88,7 @@ loginForm.querySelector(".login-btn").addEventListener("click", async () => {
     }
     localStorage.setItem("userId", res.userId);
     localStorage.setItem("role", res.role);
-    window.location.href = `main.html?userId=${res.userId}&role=${res.role}`;
+    window.location.href = `select.html?userId=${encodeURIComponent(res.userId)}&role=${encodeURIComponent(res.role)}`;
   } catch (e) {
     console.error(e);
     showToast("로그인 중 오류 발생");
@@ -105,7 +105,7 @@ loginForm.querySelector(".guest-btn").addEventListener("click", async () => {
     }
     localStorage.setItem("userId", res.userId);
     localStorage.setItem("role", res.role);
-    window.location.href = `main.html?userId=${res.userId}&role=${res.role}`;
+    window.location.href = `select.html?userId=${encodeURIComponent(res.userId)}&role=${encodeURIComponent(res.role)}`;
   } catch (e) {
     console.error(e);
     showToast("로그인 중 오류 발생");

@@ -6,10 +6,15 @@
     <title>QnA AI</title>
     <link rel="stylesheet" href="css/common.css" />
     <link rel="stylesheet" href="css/main.css" />
+    <script src="/socket.io/socket.io.js"></script>
     <script src="js/main.js" defer></script>
   </head>
   <body>
     <div id="chatContainer">
+      <div id="modeBanner" class="mode-banner">
+        <button id="mobileBackBtn" class="mobile-back-btn hidden">← </button>
+        <div id="bannerText"></div>
+      </div>
       <div id="chatArea"></div>
       <div id="inputWrapper">
         <div id="inputArea">
@@ -24,6 +29,12 @@
       </div>
     </div>
     <div id="sidebar">
+      <div class="sidebar-header">
+        <div id="sidebarTitle">서비스</div>
+        <div id="conversationInfo"></div>
+      </div>
+      <div id="userList"></div>
+      <button id="switchModeBtn">서비스 전환</button>
       <button id="logoutBtn">로그아웃</button>
       <div class="version-info">v2.0.0 released</div>
     </div>

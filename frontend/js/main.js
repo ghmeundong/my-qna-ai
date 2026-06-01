@@ -4,13 +4,25 @@ const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 const sidebar = document.getElementById("sidebar");
 const logoutBtn = document.getElementById("logoutBtn");
+const switchModeBtn = document.getElementById("switchModeBtn");
 const toast = document.getElementById("toast");
+const sidebarTitle = document.getElementById("sidebarTitle");
+const conversationInfo = document.getElementById("conversationInfo");
+const userList = document.getElementById("userList");
+const modeBanner = document.getElementById("modeBanner");
+const mobileBackBtn = document.getElementById("mobileBackBtn");
+const chatContainer = document.getElementById("chatContainer");
 const params = new URLSearchParams(window.location.search);
 const userId =
   params.get("userId") ||
   localStorage.getItem("userId") ||
   `guest_${Date.now()}`;
 const role = params.get("role") || localStorage.getItem("role") || "guest";
+const mode = params.get("mode") || "chat";
+let selectedPeerId = params.get("peerId");
+let participants = [];
+let socket = null;
+
 if (!userId) {
   try {
     localStorage.clear();
@@ -18,34 +30,70 @@ if (!userId) {
   window.location.href = "index.html";
 }
 
-// 공통 함수: 메시지 추가
 function addMessage(text, className) {
   const msg = document.createElement("div");
   msg.className = "message " + className;
   msg.textContent = text;
   chatArea.appendChild(msg);
-
   scrollChatToBottom();
 }
 
-// 공통 함수: 채팅 영역 스크롤
+function addSystemMessage(text) {
+  const msg = document.createElement("div");
+  msg.className = "message system";
+  msg.textContent = text;
+  chatArea.appendChild(msg);
+  scrollChatToBottom();
+}
+
+function isMobile() {
+  return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+}
+
+function updateMobileView() {
+  const isGuest = role === "guest";
+  if (!isMobile()) {
+    sidebar.classList.remove("mobile-messenger");
+    sidebar.classList.remove("mobile-chat-open");
+    mobileBackBtn.classList.remove("show");
+    logoutBtn.style.display = "block";
+    return;
+  }
+
+  if (mode === "messenger") {
+    sidebar.classList.add("mobile-messenger");
+    if (selectedPeerId) {
+      sidebar.classList.add("mobile-chat-open");
+      mobileBackBtn.classList.add("show");
+      logoutBtn.style.display = "block";
+    } else {
+      sidebar.classList.remove("mobile-chat-open");
+      mobileBackBtn.classList.remove("show");
+      logoutBtn.style.display = isGuest ? "block" : "none";
+    }
+  } else {
+    sidebar.classList.remove("mobile-messenger");
+    sidebar.classList.remove("mobile-chat-open");
+    mobileBackBtn.classList.add("show");
+    logoutBtn.style.display = "block";
+  }
+}
+
 function scrollChatToBottom() {
   requestAnimationFrame(() => {
     chatArea.scrollTo({
       top: chatArea.scrollHeight,
-      behavior: "smooth"
+      behavior: "smooth",
     });
   });
 }
 
-// 공통 함수: Toast
 function showToast(msg, duration = 2000) {
   toast.textContent = msg;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), duration);
 }
 
-// 공통 함수: POST
 async function postData(url = "", data = {}) {
   const res = await fetch(url, {
     method: "POST",
@@ -59,7 +107,6 @@ async function postData(url = "", data = {}) {
   return res.json();
 }
 
-// typing indicator
 function showTyping() {
   if (document.getElementById("typingIndicator")) return;
   const t = document.createElement("div");
@@ -68,26 +115,47 @@ function showTyping() {
   t.innerHTML =
     '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
   chatArea.appendChild(t);
-
-  // 인디케이터가 추가될 때도 스크롤
   requestAnimationFrame(() => {
     chatArea.scrollTo({
       top: chatArea.scrollHeight,
-      behavior: "smooth"
+      behavior: "smooth",
     });
   });
 }
+
 function hideTyping() {
   const t = document.getElementById("typingIndicator");
   if (t) t.remove();
 }
 
-// 방문자 기록 함수
+function initializeSocket() {
+  if (socket || typeof io === "undefined") return;
+  socket = io();
+
+  socket.on("connect", () => {
+    socket.emit("join", { userId });
+  });
+
+  socket.on("private_message", (payload) => {
+    if (!payload || payload.toUserId !== userId) return;
+    const isCurrentPeer = payload.fromUserId === selectedPeerId;
+    if (isCurrentPeer) {
+      addMessage(payload.message, "peer");
+    } else {
+      showToast(`${payload.fromUserId}님으로부터 새 메시지가 도착했습니다.`);
+    }
+  });
+
+  socket.on("connect_error", () => {
+    showToast("실시간 연결에 실패했습니다.");
+  });
+}
+
 async function recordVisitor() {
   try {
     const visitorData = {
-      userId: userId,
-      role: role,
+      userId,
+      role,
       guestId: role === "guest" ? userId : null,
     };
     await postData("/visitor", visitorData);
@@ -96,105 +164,286 @@ async function recordVisitor() {
   }
 }
 
-// 페이지 로드 시 방문자 기록
 recordVisitor();
-
-// 초기 AI 메시지
-addMessage(
-  `안녕하세요! ${userId}님, 위대하고 지엄하신 김동은님에 대해 궁금한 점이 있으신가요?`,
-  "ai",
-);
 
 let isRequesting = false;
 let isLoadingHistory = false;
 let historySkip = 0;
-const historyLimit = 5;
+const historyLimit = 10;
 
-function prependMessage(text, className) {
-  const msg = document.createElement("div");
-  msg.className = "message " + className;
-  msg.textContent = text;
-  chatArea.insertBefore(msg, chatArea.firstChild);
+function renderModeInfo() {
+  const modeLabel = mode === "messenger" ? "메신저" : "AI 챗봇";
+  const bannerText = document.getElementById("bannerText");
+  
+  if (mode === "messenger") {
+    const guestNotice = "메신저는 로그인 후 이용 가능합니다.";
+    const isGuestNotice = role === "guest" && !selectedPeerId;
+    if (bannerText) {
+      bannerText.textContent = isGuestNotice ? guestNotice : selectedPeerId ? `${selectedPeerId}` : "대화 상대를 선택하세요.";
+    }
+    conversationInfo.textContent = isGuestNotice
+      ? guestNotice
+      : selectedPeerId
+      ? `대화 상대: ${selectedPeerId}`
+      : "대화 상대를 선택하세요.";
+    userInput.placeholder = isGuestNotice
+      ? guestNotice
+      : selectedPeerId
+      ? `${selectedPeerId}님에게 보낼 메시지를 입력하세요.`
+      : "대화 상대를 선택하세요.";
+    userInput.disabled = role === "guest" || !selectedPeerId;
+    sendBtn.disabled = role === "guest" || !selectedPeerId;
+    switchModeBtn.textContent = "챗봇으로 이동";
+  } else {
+    if (bannerText) {
+      bannerText.textContent = "admin";
+    }
+    conversationInfo.textContent = "AI 챗봇과 대화합니다.";
+    userInput.placeholder = "질문을 입력해주세요";
+    userInput.disabled = false;
+    sendBtn.disabled = false;
+    switchModeBtn.textContent = "메신저로 이동";
+  }
+  sidebarTitle.textContent = modeLabel;
+  if (role === "guest") {
+    logoutBtn.textContent = "로그인";
+  } else {
+    logoutBtn.textContent = "로그아웃";
+  }
 }
 
-function appendHistoryMessages(chats) {
-  chats.forEach((chat) => {
-    addMessage(chat.question, "user");
-    addMessage(chat.answer, "ai");
+function renderParticipants(list) {
+  userList.innerHTML = "";
+  
+  if (role === "guest") {
+    return;
+  }
+  
+  if (!list.length) {
+    userList.innerHTML =
+      "<div class='sidebar-empty'>등록된 사용자 정보가 없습니다.</div>";
+    return;
+  }
+  list.forEach((participant) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "participant-item";
+    if (participant === selectedPeerId) {
+      item.classList.add("active");
+    }
+    item.textContent = participant;
+    item.addEventListener("click", () => selectPeer(participant));
+    userList.appendChild(item);
   });
 }
 
-function prependHistoryMessages(chats) {
+function updateUrlPeer(peerId) {
+  const searchParams = new URLSearchParams(window.location.search);
+  if (peerId) {
+    searchParams.set("peerId", peerId);
+  } else {
+    searchParams.delete("peerId");
+  }
+  window.history.replaceState({}, "", `${window.location.pathname}?${searchParams.toString()}`);
+}
+
+function selectPeer(peerId) {
+  if (selectedPeerId === peerId) return;
+  selectedPeerId = peerId;
+  historySkip = 0;
+  chatArea.innerHTML = "";
+  renderModeInfo();
+  renderParticipants(participants);
+  updateUrlPeer(peerId);
+  updateMobileView();
+  loadMessengerHistory(true);
+}
+
+mobileBackBtn?.addEventListener("click", () => {
+  if (!isMobile()) return;
+  if (mode === "messenger") {
+    selectedPeerId = null;
+    historySkip = 0;
+    chatArea.innerHTML = "";
+    renderModeInfo();
+    renderParticipants(participants);
+    updateUrlPeer("");
+    updateMobileView();
+  } else {
+    window.location.href = `select.html?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`;
+  }
+});
+
+async function loadParticipants() {
+  try {
+    const res = await fetch(`/participants?userId=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    if (data.success) {
+      participants = data.participants;
+      renderParticipants(participants);
+      if (!selectedPeerId && participants.length > 0) {
+        addSystemMessage("왼쪽 목록에서 대화 상대를 선택하세요.");
+      }
+    }
+  } catch (e) {
+    console.error("참여자 목록 로드 실패:", e);
+  }
+}
+
+function appendMessengerMessages(messages, reset = false) {
+  if (reset) {
+    chatArea.innerHTML = "";
+  }
+  messages.forEach((chat) => {
+    addMessage(chat.message, chat.senderId === userId ? "user" : "peer");
+  });
+}
+
+function prependMessengerMessages(messages) {
   const previousScrollHeight = chatArea.scrollHeight;
   const previousScrollTop = chatArea.scrollTop;
-
-  chats.slice().reverse().forEach((chat) => {
-    prependMessage(chat.answer, "ai");
-    prependMessage(chat.question, "user");
+  messages.slice().reverse().forEach((chat) => {
+    const msg = document.createElement("div");
+    msg.className = "message " + (chat.senderId === userId ? "user" : "peer");
+    msg.textContent = chat.message;
+    chatArea.insertBefore(msg, chatArea.firstChild);
   });
-
   requestAnimationFrame(() => {
     chatArea.scrollTop = chatArea.scrollHeight - previousScrollHeight + previousScrollTop;
   });
 }
 
-// 대화 내역 로드 (무한 스크롤)
-async function loadHistory() {
-  if (isLoadingHistory || userId.startsWith("guest_")) return; // 게스트면 로드 안 함
-  
+async function loadMessengerHistory(reset = false) {
+  if (!selectedPeerId || isLoadingHistory) return;
+  if (reset) {
+    historySkip = 0;
+    chatArea.innerHTML = "";
+  }
   isLoadingHistory = true;
   try {
     const res = await fetch(
-      `/history?userId=${userId}&skip=${historySkip}&limit=${historyLimit}`
+      `/messages?userId=${encodeURIComponent(userId)}&peerId=${encodeURIComponent(selectedPeerId)}&skip=${historySkip}&limit=${historyLimit}`
     );
     const data = await res.json();
-
-    if (data.success && data.chats.length > 0) {
-      const chats = data.chats.reverse();
-
+    if (data.success && data.messages.length > 0) {
+      const messages = data.messages.reverse();
       if (historySkip === 0) {
-        appendHistoryMessages(chats);
-        requestAnimationFrame(scrollChatToBottom);
+        appendMessengerMessages(messages, true);
       } else {
-        prependHistoryMessages(chats);
+        prependMessengerMessages(messages);
       }
-
       historySkip += historyLimit;
+    } else if (reset) {
+      addSystemMessage("대화 기록이 없습니다. 새로운 대화를 시작해보세요.");
     }
   } catch (e) {
-    console.error("대화 내역 로드 실패:", e);
+    console.error("메시지 기록 로드 실패:", e);
   } finally {
     isLoadingHistory = false;
   }
 }
 
-async function sendMessage() {
-  if (isRequesting) return;
-  const question = userInput.value.trim();
-  if (!question) return;
-
-  userInput.value = "";
-  addMessage(question, "user");
-  showTyping();
-  sendBtn.disabled = true;
-  isRequesting = true;
-
-  try {
-    const data = await postData(`${BASE_URL}/chat`, { userId, role, question });
-    addMessage(data.answer || "AI가 답변하지 못했습니다.", "ai");
-  } catch (e) {
-    console.error(e);
-    addMessage("AI 응답 실패", "ai");
-    showToast(e.message || "오류발생", 2500);
-  } finally {
-    hideTyping();
-    sendBtn.disabled = false;
-    userInput.focus();
-    isRequesting = false;
+async function loadHistory() {
+  if (mode === "chat") {
+    if (isLoadingHistory || userId.startsWith("guest_")) return;
+    isLoadingHistory = true;
+    try {
+      const res = await fetch(
+        `/history?userId=${encodeURIComponent(userId)}&skip=${historySkip}&limit=${historyLimit}`
+      );
+      const data = await res.json();
+      if (data.success && data.chats.length > 0) {
+        const chats = data.chats.reverse();
+        if (historySkip === 0) {
+          chats.forEach((chat) => {
+            addMessage(chat.question, "user");
+            addMessage(chat.answer, "ai");
+          });
+          requestAnimationFrame(scrollChatToBottom);
+        } else {
+          const previousScrollHeight = chatArea.scrollHeight;
+          const previousScrollTop = chatArea.scrollTop;
+          chats.slice().reverse().forEach((chat) => {
+            const answerMsg = document.createElement("div");
+            answerMsg.className = "message ai";
+            answerMsg.textContent = chat.answer;
+            chatArea.insertBefore(answerMsg, chatArea.firstChild);
+            const questionMsg = document.createElement("div");
+            questionMsg.className = "message user";
+            questionMsg.textContent = chat.question;
+            chatArea.insertBefore(questionMsg, chatArea.firstChild);
+          });
+          requestAnimationFrame(() => {
+            chatArea.scrollTop = chatArea.scrollHeight - previousScrollHeight + previousScrollTop;
+          });
+        }
+        historySkip += historyLimit;
+      }
+    } catch (e) {
+      console.error("대화 내역 로드 실패:", e);
+    } finally {
+      isLoadingHistory = false;
+    }
   }
 }
 
-// 이벤트
+async function sendMessage() {
+  if (isRequesting) return;
+  const text = userInput.value.trim();
+  if (!text) return;
+  if (mode === "messenger" && !selectedPeerId) {
+    showToast("메시지를 보내기 전에 대화 상대를 선택하세요.");
+    return;
+  }
+
+  userInput.value = "";
+  if (mode === "chat") {
+    addMessage(text, "user");
+    showTyping();
+    sendBtn.disabled = true;
+    isRequesting = true;
+    try {
+      const data = await postData(`${BASE_URL}/chat`, { userId, role, question: text });
+      addMessage(data.answer || "AI가 답변하지 못했습니다.", "ai");
+    } catch (e) {
+      console.error(e);
+      addMessage("AI 응답 실패", "ai");
+      showToast(e.message || "오류발생", 2500);
+    } finally {
+      hideTyping();
+      sendBtn.disabled = false;
+      userInput.focus();
+      isRequesting = false;
+    }
+  } else {
+    addMessage(text, "user");
+    sendBtn.disabled = true;
+    isRequesting = true;
+    try {
+      if (socket && socket.connected) {
+        socket.emit("private_message", {
+          fromUserId: userId,
+          toUserId: selectedPeerId,
+          message: text,
+        });
+      } else {
+        await postData(`${BASE_URL}/message`, {
+          fromUserId: userId,
+          toUserId: selectedPeerId,
+          message: text,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("메시지 전송 실패", 2500);
+    } finally {
+      sendBtn.disabled = false;
+      userInput.focus();
+      isRequesting = false;
+    }
+  }
+}
+
 userInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -207,32 +456,61 @@ userInput.addEventListener("keydown", (e) => {
 });
 sendBtn.addEventListener("click", sendMessage);
 logoutBtn?.addEventListener("click", () => {
+  if (role === "guest") {
+    window.location.href = "index.html";
+    return;
+  }
   try {
     localStorage.clear();
   } catch (e) {}
   window.location.href = "index.html";
+});
+switchModeBtn?.addEventListener("click", () => {
+  if (mode === "messenger") {
+    window.location.href = `main.html?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}&mode=chat`;
+  } else {
+    window.location.href = `main.html?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}&mode=messenger`;
+  }
 });
 
 userInput.addEventListener("focus", () => {
   scrollChatToBottom();
 });
 
-// 페이지 로드 시 기본 펼침
 document.addEventListener("DOMContentLoaded", () => {
   sidebar.classList.add("expanded");
-  // 대화 내역 불러오기
-  loadHistory();
+  renderModeInfo();
+  updateMobileView();
+  if (mode === "messenger") {
+    if (role === "guest") {
+      renderParticipants([]);
+    } else {
+      initializeSocket();
+      loadParticipants();
+      if (selectedPeerId) {
+        loadMessengerHistory(true);
+      }
+    }
+  } else {
+    loadHistory();
+  }
 });
 
-// 입력창 입력 시 숨김
 userInput.addEventListener("input", () => {
   sidebar.classList.remove("expanded");
 });
 
-// 무한 스크롤: 스크롤 맨 위로 올리면 이전 대화 로드
 chatArea.addEventListener("scroll", () => {
   if (chatArea.scrollTop < 50 && !isLoadingHistory) {
-    loadHistory();
+    if (mode === "chat") {
+      loadHistory();
+    } else {
+      loadMessengerHistory();
+    }
   }
+});
+
+window.addEventListener("resize", () => {
+  updateMobileView();
 });
 

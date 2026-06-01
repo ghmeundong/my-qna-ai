@@ -1,0 +1,134 @@
+:root {
+  font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, sans-serif;
+}
+
+h1 {
+  font-size: 3rem;
+  width: 150vw;
+  max-width: 800px;
+  text-align: center;
+  margin: 0 0 25px 0;
+  padding-bottom: 20px;
+  word-break: keep-all;
+  white-space: nowrap;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  background-color: #000;
+  color: #fff;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: min(350px, calc(100vw - 40px));
+}
+
+.select-page h1 {
+  font-size: 2.8rem;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.login-btn {
+  background-color: #fff;
+  color: #000;
+}
+
+.login-btn:hover {
+  background-color: #ddd;
+}
+
+.signup-btn {
+  background-color: #1e90ff;
+  color: #fff;
+}
+
+.signup-btn:hover {
+  background-color: #63b3ff;
+}
+
+.guest-btn {
+  background-color: #555;
+  color: #fff;
+}
+
+.guest-btn:hover {
+  background-color: #777;
+}
+
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222;
+  padding: 12px 18px;
+  border-radius: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 999;
+}
+
+#toast.show {
+  opacity: 1;
+}
+
+.info-text {
+  width: 80vw;
+  max-width: 900px;
+  color: #aaaaaa;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+  margin-top: 35px;
+  word-break: keep-all;
+  min-height: 50px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: 90%;
+    gap: 14px;
+  }
+
+  .select-page h1 {
+    font-size: 2rem;
+  }
+
+  .info-text {
+    width: 90vw;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 25px;
+    height: auto;
+    max-height: 180px;
+  }
+}

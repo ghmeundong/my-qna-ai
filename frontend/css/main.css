@@ -133,9 +133,33 @@ select {
 #sidebar.expanded {
   width: 200px;
 }
+#sidebar .sidebar-header,
+#sidebar #userList,
+#sidebar #switchModeBtn,
+#sidebar #logoutBtn,
+#sidebar .version-info {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(8px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+}
+
+#sidebar.expanded .sidebar-header,
+#sidebar.expanded #userList,
+#sidebar.expanded #switchModeBtn,
 #sidebar.expanded #logoutBtn,
-#sidebar.expanded .version-info {
+#sidebar.expanded .version-info,
+#sidebar:hover .sidebar-header,
+#sidebar:hover #userList,
+#sidebar:hover #switchModeBtn,
+#sidebar:hover #logoutBtn,
+#sidebar:hover .version-info {
   opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  pointer-events: auto;
+  transition-delay: 0.16s;
 }
 
 #sidebar:hover {

@@ -172,7 +172,7 @@ let historySkip = 0;
 const historyLimit = 10;
 
 function renderModeInfo() {
-  const modeLabel = mode === "messenger" ? "메신저" : "AI 챗봇";
+  const modeLabel = mode === "messenger" ? "메신저" : "QnA ai";
   const bannerText = document.getElementById("bannerText");
   
   if (mode === "messenger") {

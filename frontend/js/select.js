@@ -16,7 +16,7 @@ function showToast(msg, duration = 1800) {
 if (!userId || !role) {
   window.location.href = "index.html";
 } else {
-  const message = `${userId}님, 이동할 서비스를 선택해주세요.`;
+  const message = `${userId}님, 동은이의 개인 서재에 오신 것을 환영합니다. 동은님 혹은 다른 분들과 대화하시려면 [메신저]를, 저와 대화하시려면 [AI 챗봇]을 선택해주세요. 단, 게스트 분들은 답변에 제한이 있을 수 있습니다.`;
   let index = 0;
   
   function typeMessage() {

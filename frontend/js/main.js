@@ -196,7 +196,7 @@ function renderModeInfo() {
     switchModeBtn.textContent = "챗봇으로 이동";
   } else {
     if (bannerText) {
-      bannerText.textContent = "admin";
+      bannerText.textContent = "비서실장";
     }
     conversationInfo.textContent = "AI 챗봇과 대화합니다.";
     userInput.placeholder = "질문을 입력해주세요";
@@ -282,7 +282,7 @@ async function loadParticipants() {
       participants = data.participants;
       renderParticipants(participants);
       if (!selectedPeerId && participants.length > 0) {
-        addSystemMessage("왼쪽 목록에서 대화 상대를 선택하세요.");
+        addSystemMessage("목록에서 대화 상대를 선택하세요.");
       }
     }
   } catch (e) {

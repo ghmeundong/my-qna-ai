@@ -93,7 +93,28 @@ function updateMobileView() {
 }
 
 function adjustLayoutForMobileChrome() {
-  // Layout is now handled by flexbox, no adjustment needed
+  // Prevent jitter when virtual keyboard appears on scroll position
+  if ("visualViewport" in window) {
+    let lastScrollTop = 0;
+    let isKeyboardShowing = false;
+    
+    userInput?.addEventListener("focus", () => {
+      lastScrollTop = chatArea.scrollTop;
+      isKeyboardShowing = true;
+    });
+    
+    userInput?.addEventListener("blur", () => {
+      isKeyboardShowing = false;
+    });
+    
+    window.visualViewport?.addEventListener("resize", () => {
+      if (isKeyboardShowing) {
+        requestAnimationFrame(() => {
+          chatArea.scrollTop = lastScrollTop;
+        });
+      }
+    });
+  }
 }
 
 function scrollChatToBottom() {

@@ -81,6 +81,40 @@ function updateMobileView() {
   }
 }
 
+function adjustLayoutForMobileChrome() {
+  if (window.innerHeight < 500) {
+    const inputWrapper = document.getElementById("inputWrapper");
+    const chatArea = document.getElementById("chatArea");
+    
+    if (!inputWrapper || !chatArea) return;
+    
+    const handleResize = () => {
+      requestAnimationFrame(() => {
+        const viewportHeight = window.innerHeight;
+        const inputWrapperHeight = inputWrapper.offsetHeight;
+        const bottomOffset = viewportHeight - inputWrapperHeight;
+        
+        chatArea.style.paddingBottom = `${inputWrapperHeight + 20}px`;
+        inputWrapper.style.bottom = "0px";
+        
+        scrollChatToBottom();
+      });
+    };
+    
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+    
+    userInput?.addEventListener("focus", () => {
+      setTimeout(() => {
+        scrollChatToBottom();
+        inputWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 300);
+    });
+    
+    handleResize();
+  }
+}
+
 function scrollChatToBottom() {
   requestAnimationFrame(() => {
     chatArea.scrollTo({
@@ -566,6 +600,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadHistory();
   }
 
+  adjustLayoutForMobileChrome();
   registerPushNotifications();
 });
 

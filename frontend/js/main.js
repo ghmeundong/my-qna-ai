@@ -36,20 +36,31 @@ function addMessage(text, className) {
   const msg = document.createElement("div");
   msg.className = "message " + className;
   msg.textContent = text;
+  const wasAtBottom = isScrolledToBottom();
   chatArea.appendChild(msg);
-  scrollChatToBottom();
+  if (wasAtBottom) {
+    scrollChatToBottom();
+  }
 }
 
 function addSystemMessage(text) {
   const msg = document.createElement("div");
   msg.className = "message system";
   msg.textContent = text;
+  const wasAtBottom = isScrolledToBottom();
   chatArea.appendChild(msg);
-  scrollChatToBottom();
+  if (wasAtBottom) {
+    scrollChatToBottom();
+  }
 }
 
 function isMobile() {
   return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+}
+
+function isScrolledToBottom() {
+  const threshold = 50;
+  return chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
 }
 
 function updateMobileView() {
@@ -82,62 +93,12 @@ function updateMobileView() {
 }
 
 function adjustLayoutForMobileChrome() {
-  const inputWrapper = document.getElementById("inputWrapper");
-  const chatArea = document.getElementById("chatArea");
-  
-  if (!inputWrapper || !chatArea) return;
-  
-  const updateLayout = () => {
-    requestAnimationFrame(() => {
-      const inputHeight = inputWrapper.getBoundingClientRect().height;
-      const minPadding = 20;
-      const padding = Math.max(inputHeight + minPadding, 80);
-      
-      chatArea.style.paddingBottom = `${padding}px`;
-      
-      scrollChatToBottom();
-    });
-  };
-  
-  setTimeout(() => updateLayout(), 100);
-  
-  const resizeObserver = new ResizeObserver(() => {
-    updateLayout();
-  });
-  resizeObserver.observe(inputWrapper);
-  
-  window.addEventListener("resize", updateLayout);
-  window.addEventListener("orientationchange", () => {
-    setTimeout(updateLayout, 200);
-  });
-  
-  userInput?.addEventListener("focus", () => {
-    setTimeout(() => {
-      scrollChatToBottom();
-    }, 300);
-  });
-  
-  const observer = new MutationObserver(() => {
-    setTimeout(() => {
-      updateLayout();
-      scrollChatToBottom();
-    }, 50);
-  });
-  
-  observer.observe(chatArea, { childList: true });
+  // Layout is now handled by flexbox, no adjustment needed
 }
 
 function scrollChatToBottom() {
   requestAnimationFrame(() => {
-    const lastMessage = chatArea.lastElementChild;
-    if (lastMessage) {
-      lastMessage.scrollIntoView({ behavior: "auto", block: "end" });
-    } else {
-      chatArea.scrollTo({
-        top: chatArea.scrollHeight,
-        behavior: "auto",
-      });
-    }
+    chatArea.scrollTop = chatArea.scrollHeight;
   });
 }
 
@@ -524,12 +485,14 @@ async function sendMessage() {
   userInput.value = "";
   if (mode === "chat") {
     addMessage(text, "user");
+    scrollChatToBottom();
     showTyping();
     sendBtn.disabled = true;
     isRequesting = true;
     try {
       const data = await postData(`${BASE_URL}/chat`, { userId, role, question: text });
       addMessage(data.answer || "AI가 답변하지 못했습니다.", "ai");
+      scrollChatToBottom();
     } catch (e) {
       console.error(e);
       addMessage("AI 응답 실패", "ai");
@@ -542,6 +505,7 @@ async function sendMessage() {
     }
   } else {
     addMessage(text, "user");
+    scrollChatToBottom();
     sendBtn.disabled = true;
     isRequesting = true;
     try {

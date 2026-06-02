@@ -4,6 +4,7 @@ const signupForm = document.getElementById("signupForm");
 const showSignup = document.getElementById("showSignup");
 const backLogin = document.getElementById("backLogin");
 const toast = document.getElementById("toast");
+let toastTimeout = null;
 
 // 화면 전환
 showSignup.addEventListener("click", () => {
@@ -29,9 +30,14 @@ async function postData(url = "", data = {}) {
 
 // 공통 함수: Toast 메시지
 function showToast(msg, duration = 2000) {
+  if (!toast) return;
+  clearTimeout(toastTimeout);
   toast.textContent = msg;
   toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), duration);
+  toastTimeout = setTimeout(() => {
+    toast.classList.remove("show");
+    toastTimeout = null;
+  }, duration);
 }
 
 // 공통 함수: 폼 입력값 가져오기

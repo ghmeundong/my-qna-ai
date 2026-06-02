@@ -125,6 +125,26 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("typing", (payload) => {
+    const { fromUserId, toUserId } = payload || {};
+    if (!fromUserId || !toUserId) return;
+
+    const recipientSocketId = onlineUsers.get(toUserId);
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("typing", { fromUserId, toUserId });
+    } 
+  });
+
+  socket.on("stop_typing", (payload) => {
+    const { fromUserId, toUserId } = payload || {};
+    if (!fromUserId || !toUserId) return;
+
+    const recipientSocketId = onlineUsers.get(toUserId);
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("stop_typing", { fromUserId, toUserId });
+    }
+  });
+
   socket.on("disconnect", () => {
     const userId = socket.data.userId;
     if (userId && onlineUsers.get(userId) === socket.id) {

@@ -22,6 +22,8 @@ const mode = params.get("mode") || "chat";
 let selectedPeerId = params.get("peerId");
 let participants = [];
 let socket = null;
+let typingTimeout = null;
+let toastTimeout = null;
 
 if (!userId) {
   try {
@@ -89,9 +91,14 @@ function scrollChatToBottom() {
 }
 
 function showToast(msg, duration = 2000) {
+  if (!toast) return;
+  clearTimeout(toastTimeout);
   toast.textContent = msg;
   toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), duration);
+  toastTimeout = setTimeout(() => {
+    toast.classList.remove("show");
+    toastTimeout = null;
+  }, duration);
 }
 
 async function postData(url = "", data = {}) {
@@ -133,6 +140,7 @@ function initializeSocket() {
   socket = io();
 
   socket.on("connect", () => {
+    console.log("Socket connected:", socket.id);
     socket.emit("join", { userId });
   });
 
@@ -140,10 +148,27 @@ function initializeSocket() {
     if (!payload || payload.toUserId !== userId) return;
     const isCurrentPeer = payload.fromUserId === selectedPeerId;
     if (isCurrentPeer) {
+      hideTyping();
       addMessage(payload.message, "peer");
     } else {
       showToast(`${payload.fromUserId}님으로부터 새 메시지가 도착했습니다.`);
     }
+  });
+
+  socket.on("typing", (payload) => {
+    console.log("Typing event received:", payload, "selectedPeerId:", selectedPeerId);
+    if (!payload || payload.fromUserId !== selectedPeerId) {
+      console.log("Filtering out typing event");
+      return;
+    }
+    console.log("Showing typing indicator");
+    showTyping();
+  });
+
+  socket.on("stop_typing", (payload) => {
+    console.log("Stop typing event received:", payload);
+    if (!payload || payload.fromUserId !== selectedPeerId) return;
+    hideTyping();
   });
 
   socket.on("connect_error", () => {
@@ -170,6 +195,7 @@ let isRequesting = false;
 let isLoadingHistory = false;
 let historySkip = 0;
 const historyLimit = 10;
+let isTyping = false;
 
 function renderModeInfo() {
   const modeLabel = mode === "messenger" ? "메신저" : "QnA ai";
@@ -333,6 +359,13 @@ async function loadMessengerHistory(reset = false) {
         prependMessengerMessages(messages);
       }
       historySkip += historyLimit;
+      
+      // 초기 로드 시 화면이 스크롤 가능할 때까지 반복 로드
+      if (reset && chatArea.scrollHeight <= chatArea.clientHeight && data.messages.length === historyLimit) {
+        isLoadingHistory = false;
+        await loadMessengerHistory(false);
+        return;
+      }
     } else if (reset) {
       addSystemMessage("대화 기록이 없습니다. 새로운 대화를 시작해보세요.");
     }
@@ -354,7 +387,8 @@ async function loadHistory() {
       const data = await res.json();
       if (data.success && data.chats.length > 0) {
         const chats = data.chats.reverse();
-        if (historySkip === 0) {
+        const isInitialLoad = historySkip === 0;
+        if (isInitialLoad) {
           chats.forEach((chat) => {
             addMessage(chat.question, "user");
             addMessage(chat.answer, "ai");
@@ -378,6 +412,13 @@ async function loadHistory() {
           });
         }
         historySkip += historyLimit;
+        
+        // 초기 로드 시 화면이 스크롤 가능할 때까지 반복 로드
+        if (isInitialLoad && chatArea.scrollHeight <= chatArea.clientHeight && data.chats.length === historyLimit) {
+          isLoadingHistory = false;
+          await loadHistory();
+          return;
+        }
       }
     } catch (e) {
       console.error("대화 내역 로드 실패:", e);
@@ -498,6 +539,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
 userInput.addEventListener("input", () => {
   sidebar.classList.remove("expanded");
+  
+  // 메신저 모드에서만 typing 이벤트 전송
+  if (mode === "messenger" && selectedPeerId && socket && socket.connected) {
+    console.log("Sending typing event - userId:", userId, "selectedPeerId:", selectedPeerId, "connected:", socket.connected);
+    if (!isTyping) {
+      isTyping = true;
+      socket.emit("typing", { fromUserId: userId, toUserId: selectedPeerId });
+      console.log("Typing event emitted");
+    }
+    
+    // 기존 타이머 클리어
+    clearTimeout(typingTimeout);
+    
+    // 2초 후 stop_typing 전송
+    typingTimeout = setTimeout(() => {
+      isTyping = false;
+      socket.emit("stop_typing", { fromUserId: userId, toUserId: selectedPeerId });
+      console.log("Stop typing event emitted");
+    }, 2000);
+  } else {
+    console.log("Typing condition not met - mode:", mode, "selectedPeerId:", selectedPeerId, "socket:", !!socket, "connected:", socket?.connected);
+  }
+});
+
+userInput.addEventListener("blur", () => {
+  // 포커스 아웃 시 즉시 stop_typing 전송
+  if (mode === "messenger" && selectedPeerId && socket && socket.connected && isTyping) {
+    isTyping = false;
+    clearTimeout(typingTimeout);
+    socket.emit("stop_typing", { fromUserId: userId, toUserId: selectedPeerId });
+  }
 });
 
 chatArea.addEventListener("scroll", () => {

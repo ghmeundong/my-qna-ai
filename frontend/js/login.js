@@ -6,6 +6,12 @@ const backLogin = document.getElementById("backLogin");
 const toast = document.getElementById("toast");
 let toastTimeout = null;
 
+const savedUserId = localStorage.getItem("userId");
+const savedRole = localStorage.getItem("role");
+if (savedUserId && savedRole) {
+  window.location.href = `select.html?userId=${encodeURIComponent(savedUserId)}&role=${encodeURIComponent(savedRole)}`;
+}
+
 // 화면 전환
 showSignup.addEventListener("click", () => {
   loginForm.classList.add("hidden");

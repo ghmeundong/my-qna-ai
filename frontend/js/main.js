@@ -82,45 +82,65 @@ function updateMobileView() {
 }
 
 function adjustLayoutForMobileChrome() {
-  if (window.innerHeight < 500) {
-    const inputWrapper = document.getElementById("inputWrapper");
-    const chatArea = document.getElementById("chatArea");
-    
-    if (!inputWrapper || !chatArea) return;
-    
-    const handleResize = () => {
-      requestAnimationFrame(() => {
-        const viewportHeight = window.innerHeight;
-        const inputWrapperHeight = inputWrapper.offsetHeight;
-        const bottomOffset = viewportHeight - inputWrapperHeight;
-        
-        chatArea.style.paddingBottom = `${inputWrapperHeight + 20}px`;
-        inputWrapper.style.bottom = "0px";
-        
-        scrollChatToBottom();
-      });
-    };
-    
-    window.addEventListener("resize", handleResize);
-    window.addEventListener("orientationchange", handleResize);
-    
-    userInput?.addEventListener("focus", () => {
+  const inputWrapper = document.getElementById("inputWrapper");
+  const chatArea = document.getElementById("chatArea");
+  
+  if (!inputWrapper || !chatArea) return;
+  
+  const isMobileDevice = isMobile();
+  
+  const updateLayout = () => {
+    requestAnimationFrame(() => {
+      const inputWrapperHeight = inputWrapper.offsetHeight;
+      const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom') || '0');
+      const totalPadding = inputWrapperHeight + 40 + safeAreaBottom;
+      
+      if (isMobileDevice) {
+        chatArea.style.paddingBottom = `${totalPadding}px`;
+        inputWrapper.style.bottom = safeAreaBottom + "px";
+      }
+      
+      scrollChatToBottom();
+    });
+  };
+  
+  window.addEventListener("resize", updateLayout);
+  window.addEventListener("orientationchange", () => {
+    setTimeout(updateLayout, 100);
+  });
+  
+  userInput?.addEventListener("focus", () => {
+    setTimeout(() => {
+      scrollChatToBottom();
+      inputWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 300);
+  });
+  
+  updateLayout();
+  
+  const observer = new MutationObserver(() => {
+    if (isMobileDevice) {
       setTimeout(() => {
         scrollChatToBottom();
-        inputWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
-      }, 300);
-    });
-    
-    handleResize();
-  }
+        updateLayout();
+      }, 50);
+    }
+  });
+  
+  observer.observe(chatArea, { childList: true, subtree: true });
 }
 
 function scrollChatToBottom() {
   requestAnimationFrame(() => {
-    chatArea.scrollTo({
-      top: chatArea.scrollHeight,
-      behavior: "smooth",
-    });
+    const lastMessage = chatArea.lastElementChild;
+    if (lastMessage) {
+      lastMessage.scrollIntoView({ behavior: "auto", block: "end" });
+    } else {
+      chatArea.scrollTo({
+        top: chatArea.scrollHeight,
+        behavior: "auto",
+      });
+    }
   });
 }
 

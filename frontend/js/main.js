@@ -87,47 +87,44 @@ function adjustLayoutForMobileChrome() {
   
   if (!inputWrapper || !chatArea) return;
   
-  const isMobileDevice = isMobile();
-  
   const updateLayout = () => {
     requestAnimationFrame(() => {
-      const inputWrapperHeight = inputWrapper.offsetHeight;
-      const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom') || '0');
-      const totalPadding = inputWrapperHeight + 40 + safeAreaBottom;
+      const inputHeight = inputWrapper.getBoundingClientRect().height;
+      const minPadding = 20;
+      const padding = Math.max(inputHeight + minPadding, 80);
       
-      if (isMobileDevice) {
-        chatArea.style.paddingBottom = `${totalPadding}px`;
-        inputWrapper.style.bottom = safeAreaBottom + "px";
-      }
+      chatArea.style.paddingBottom = `${padding}px`;
       
       scrollChatToBottom();
     });
   };
   
+  setTimeout(() => updateLayout(), 100);
+  
+  const resizeObserver = new ResizeObserver(() => {
+    updateLayout();
+  });
+  resizeObserver.observe(inputWrapper);
+  
   window.addEventListener("resize", updateLayout);
   window.addEventListener("orientationchange", () => {
-    setTimeout(updateLayout, 100);
+    setTimeout(updateLayout, 200);
   });
   
   userInput?.addEventListener("focus", () => {
     setTimeout(() => {
       scrollChatToBottom();
-      inputWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
     }, 300);
   });
   
-  updateLayout();
-  
   const observer = new MutationObserver(() => {
-    if (isMobileDevice) {
-      setTimeout(() => {
-        scrollChatToBottom();
-        updateLayout();
-      }, 50);
-    }
+    setTimeout(() => {
+      updateLayout();
+      scrollChatToBottom();
+    }, 50);
   });
   
-  observer.observe(chatArea, { childList: true, subtree: true });
+  observer.observe(chatArea, { childList: true });
 }
 
 function scrollChatToBottom() {

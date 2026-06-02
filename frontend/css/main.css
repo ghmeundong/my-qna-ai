@@ -25,7 +25,8 @@ select {
 #chatArea {
   flex: 1;
   padding: 15px;
-  padding-bottom: 70px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
   background: #000;
   display: flex;
   flex-direction: column;
@@ -373,11 +374,13 @@ select {
     height: 100vh;
   }
   #chatArea {
-    padding-bottom: 65px;
+    padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   }
   #inputWrapper {
     width: 95%;
     padding: 8px;
+    bottom: env(safe-area-inset-bottom, 0px);
   }
   #inputArea {
     width: 100%;

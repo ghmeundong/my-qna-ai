@@ -1,6 +1,7 @@
 const { jsonRes } = require("../utils/response");
 const User = require("../models/user");
 const UserChat = require("../models/userChat");
+const { sendPushNotification } = require("../utils/notification");
 
 async function handleParticipants(parsed, res) {
   const userId = parsed.searchParams.get("userId");
@@ -56,6 +57,12 @@ async function handleSendMessage(data, res) {
 
   try {
     await UserChat.create({ senderId: fromUserId, recipientId: toUserId, message });
+    await sendPushNotification(toUserId, {
+      title: `${fromUserId}님으로부터 새 메시지가 도착했습니다.`,
+      body: message,
+      url: `/main.html?mode=messenger&peerId=${encodeURIComponent(fromUserId)}`,
+      tag: `message-${fromUserId}-${toUserId}`,
+    });
     return jsonRes(res, { success: true, msg: "메시지 전송 완료" });
   } catch (err) {
     return jsonRes(res, { success: false, msg: "메시지 저장 실패" }, 500);

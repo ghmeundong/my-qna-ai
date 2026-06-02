@@ -13,6 +13,47 @@ function showToast(msg, duration = 1800) {
   setTimeout(() => toast.classList.remove("show"), duration);
 }
 
+async function postData(url = "", data = {}) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+async function registerPushNotifications() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if (!userId) return;
+
+  try {
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    if (Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return;
+    }
+
+    const keyRes = await fetch("/vapidPublicKey");
+    const keyData = await keyRes.json();
+    if (!keyData.success || !keyData.publicKey) return;
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+    });
+    await postData("/subscribe", { userId, subscription });
+  } catch (err) {
+    console.error("Push registration failed:", err);
+  }
+}
+
 if (!userId || !role) {
   window.location.href = "index.html";
 } else {
@@ -28,6 +69,7 @@ if (!userId || !role) {
   }
   
   typeMessage();
+  registerPushNotifications();
 }
 
 chatbotBtn.addEventListener("click", () => {

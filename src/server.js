@@ -19,6 +19,8 @@ const {
   handleMessageHistory,
   handleSendMessage,
 } = require("./routes/messenger");
+const { handleSubscribe, handleUnsubscribe, handleVapidPublicKey } = require("./routes/push");
+const { sendPushNotification } = require("./utils/notification");
 const { handleStaticFiles } = require("./routes/static");
 const { handleVisitor } = require("./routes/visitor");
 
@@ -55,6 +57,10 @@ const server = http.createServer((req, res) => {
           await handleChat(data, res);
         } else if (pathname === "/message") {
           await handleSendMessage(data, res);
+        } else if (pathname === "/subscribe") {
+          await handleSubscribe(data, res);
+        } else if (pathname === "/unsubscribe") {
+          await handleUnsubscribe(data, res);
         } else if (pathname === "/visitor") {
           await handleVisitor(req, data, res);
         } else {
@@ -77,6 +83,8 @@ const server = http.createServer((req, res) => {
       handleParticipants(parsed, res);
     } else if (pathname === "/messages") {
       handleMessageHistory(parsed, res);
+    } else if (pathname === "/vapidPublicKey") {
+      handleVapidPublicKey(res);
     } else {
       handleStaticFiles(pathname, res);
     }
@@ -120,6 +128,13 @@ io.on("connection", (socket) => {
           timestamp: new Date().toISOString(),
         });
       }
+
+      await sendPushNotification(toUserId, {
+        title: `${fromUserId}님으로부터 새 메시지가 도착했습니다.`,
+        body: message,
+        url: `/main.html?mode=messenger&peerId=${encodeURIComponent(fromUserId)}`,
+        tag: `message-${fromUserId}-${toUserId}`,
+      });
     } catch (err) {
       console.error("Socket message save failed:", err);
     }

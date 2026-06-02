@@ -7,10 +7,15 @@ function handleStaticFiles(pathname, res) {
   let target = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
   const ext = path.extname(target).toLowerCase();
 
+  // Service worker 파일은 루트에서 그대로 제공합니다.
+  if (pathname === "/sw.js") {
+    target = "sw.js";
+  }
+
   // 파일 확장자에 따라 폴더 분류
   if (target.startsWith("assets/")) {
     // assets 폴더는 그대로 처리
-  } else if (ext === ".js" && !target.startsWith("js/")) {
+  } else if (ext === ".js" && !target.startsWith("js/") && target !== "sw.js") {
     target = `js/${target}`;
   } else if (ext === ".css" && !target.startsWith("css/")) {
     target = `css/${target}`;

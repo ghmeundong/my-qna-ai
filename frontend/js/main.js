@@ -497,12 +497,9 @@ userInput.addEventListener("keydown", (e) => {
 });
 sendBtn.addEventListener("click", sendMessage);
 logoutBtn?.addEventListener("click", () => {
-  if (role === "guest") {
-    window.location.href = "index.html";
-    return;
-  }
   try {
-    localStorage.clear();
+    localStorage.removeItem("userId");
+    localStorage.removeItem("role");
   } catch (e) {}
   window.location.href = "index.html";
 });

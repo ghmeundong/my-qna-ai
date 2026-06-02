@@ -39,6 +39,8 @@ messengerBtn.addEventListener("click", () => {
 });
 
 backBtn.addEventListener("click", () => {
+  localStorage.removeItem("userId");
+  localStorage.removeItem("role");
   window.location.href = "index.html";
 });
 
